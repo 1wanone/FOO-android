@@ -10,7 +10,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import playfoo.com.domain.AuthProvedor
 import playfoo.com.ui.game.components.AvatarView
 import playfoo.com.ui.game.components.EstadoAvatar
 import playfoo.com.viewmodel.PerfilViewModel
@@ -22,6 +26,15 @@ fun PerfilScreen(
     viewModel: PerfilViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.carregar()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     if (uiState.modoEdicao) {
         BackHandler { viewModel.fecharEditor() }
@@ -75,7 +88,30 @@ fun PerfilScreen(
                 modifier = Modifier.size(200.dp)
             )
 
-            Text("Jogador", style = MaterialTheme.typography.headlineSmall)
+            val usuario = uiState.usuarioLogado
+            if (usuario != null) {
+                Text(usuario.nome, style = MaterialTheme.typography.headlineSmall)
+                Text(usuario.email, style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.outline)
+
+                val provedorLabel = when (usuario.provedor) {
+                    AuthProvedor.GOOGLE -> "Google"
+                    AuthProvedor.EMAIL  -> "Email"
+                }
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        text = "Conta $provedorLabel",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            } else {
+                Text("Visitante", style = MaterialTheme.typography.headlineSmall)
+            }
 
             HorizontalDivider()
 
@@ -84,6 +120,25 @@ fun PerfilScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Editar Avatar")
+            }
+
+            if (usuario != null) {
+                OutlinedButton(
+                    onClick = { viewModel.logout() },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Sair")
+                }
+            } else {
+                Button(
+                    onClick = { navController.navigate("login") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Fazer Login")
+                }
             }
         }
     }

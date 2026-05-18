@@ -13,6 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
+import playfoo.com.ui.auth.LoginScreen
 import playfoo.com.ui.dashboard.DashboardScreen
 import playfoo.com.ui.game.GameScreen
 import playfoo.com.ui.menu.MenuScreen
@@ -50,5 +51,6 @@ fun ForcaNavHost() {
         composable("turmas") { TurmaScreen(navController) }
         composable("dashboard") { DashboardScreen(navController) }
         composable("perfil") { PerfilScreen(navController) }
+        composable("login") { LoginScreen(navController) }
     }
 }
