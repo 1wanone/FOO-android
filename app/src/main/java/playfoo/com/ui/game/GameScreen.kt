@@ -17,17 +17,9 @@ import playfoo.com.viewmodel.ResultadoJogo
 @Composable
 fun GameScreen(
     onVoltar: () -> Unit = {},
-    onJogarNovamente: () -> Unit = {},
     viewModel: GameViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
-    LaunchedEffect(Unit) {
-        val tema = Tema(id = 1, nome = "POO")
-        val palavra = Palavra("HERANCA")
-        val jogador = JogadorAluno(id = "1", nome = "Jogador Teste")
-        viewModel.iniciarPartida(tema, palavra, jogador, Dificuldade.NORMAL)
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -89,7 +81,7 @@ fun GameScreen(
                     )
                 },
                 confirmButton = {
-                    Button(onClick = onJogarNovamente) { Text("Jogar novamente") }
+                    Button(onClick = { viewModel.reiniciar() }) { Text("Jogar novamente") }
                 },
                 dismissButton = {
                     OutlinedButton(onClick = onVoltar) { Text("Voltar") }

@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -17,6 +18,7 @@ import playfoo.com.ui.game.GameScreen
 import playfoo.com.ui.menu.MenuScreen
 import playfoo.com.ui.multiplayer.MultiplayerScreen
 import playfoo.com.ui.perfil.PerfilScreen
+import playfoo.com.ui.selecionar.SelecionarTemaScreen
 import playfoo.com.ui.theme.FOOmobileTheme
 import playfoo.com.ui.turma.TurmaScreen
 
@@ -27,7 +29,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             FOOmobileTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
+                Surface(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
                     ForcaNavHost()
                 }
             }
@@ -40,11 +42,9 @@ fun ForcaNavHost() {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = "menu") {
         composable("menu") { MenuScreen(navController) }
-        composable("jogo") {
-            GameScreen(
-                onVoltar = { navController.navigateUp() },
-                onJogarNovamente = { navController.navigate("jogo") }
-            )
+        composable("selecionar_tema") { SelecionarTemaScreen(navController) }
+        composable("jogo/{temaId}/{dificuldade}") {
+            GameScreen(onVoltar = { navController.navigateUp() })
         }
         composable("multiplayer") { MultiplayerScreen(navController) }
         composable("turmas") { TurmaScreen(navController) }

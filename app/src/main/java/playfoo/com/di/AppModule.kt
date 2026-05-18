@@ -1,8 +1,11 @@
 package playfoo.com.di
 
+import android.content.Context
+import android.content.SharedPreferences
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import playfoo.com.domain.JogoDaForca
 import javax.inject.Singleton
@@ -14,4 +17,9 @@ object AppModule {
     @Provides
     @Singleton
     fun provideJogoDaForca(): JogoDaForca = JogoDaForca()
+
+    @Provides
+    @Singleton
+    fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences =
+        context.getSharedPreferences("foomobile_prefs", Context.MODE_PRIVATE)
 }

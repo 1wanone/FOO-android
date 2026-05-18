@@ -20,7 +20,7 @@ fun MenuScreen(navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Jogo da Forca")
-        Button(onClick = { navController.navigate("jogo") }) { Text("Jogar") }
+        Button(onClick = { navController.navigate("selecionar_tema") }) { Text("Jogar") }
         Button(onClick = { navController.navigate("multiplayer") }) { Text("Multiplayer") }
         Button(onClick = { navController.navigate("turmas") }) { Text("Turmas") }
         Button(onClick = { navController.navigate("dashboard") }) { Text("Dashboard") }

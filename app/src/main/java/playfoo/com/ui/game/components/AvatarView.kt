@@ -15,7 +15,7 @@ fun AvatarView(
     estado: EstadoAvatar = EstadoAvatar.NEUTRO,
     modifier: Modifier = Modifier
 ) {
-    // TODO: substituir pelos assets do desenhista
+    // TODO: substituir pelos assets
     // NEUTRO  -> avatar digitando normalmente
     // ACERTOU -> avatar feliz
     // ERROU   -> avatar bravo, parou de digitar
