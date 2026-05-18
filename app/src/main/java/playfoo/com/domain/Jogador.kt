@@ -6,6 +6,7 @@ abstract class Jogador(
     open val avatarConfig: AvatarConfig = AvatarConfig()
 ) {
     abstract val tipo: TipoJogador
+    //testecommit
 
     open fun podeAcessarDashboard(): Boolean = false
     open fun podeCriarTurma(): Boolean = false
