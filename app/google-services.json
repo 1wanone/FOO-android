@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "655065082008",
+    "project_id": "foomobile",
+    "storage_bucket": "foomobile.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:655065082008:android:6630a162159eaeb76008ed",
+        "android_client_info": {
+          "package_name": "playfoo.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAMw1veRUvCkQAjMb3EYVpFYXHB_QgwXzU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

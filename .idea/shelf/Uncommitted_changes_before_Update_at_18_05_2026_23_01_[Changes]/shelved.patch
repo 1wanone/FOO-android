@@ -1,0 +1,160 @@
+Index: app/src/main/java/playfoo/com/ui/auth/LoginScreen.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package playfoo.com.ui.auth\r\n\r\nimport androidx.compose.foundation.layout.*\r\nimport androidx.compose.material3.*\r\nimport androidx.compose.runtime.*\r\nimport androidx.compose.ui.Alignment\r\nimport androidx.compose.ui.Modifier\r\nimport androidx.compose.ui.unit.dp\r\nimport androidx.navigation.NavController\r\n\r\n@Composable\r\n        Column(\r\n            modifier = Modifier\r\n                .fillMaxSize()\r\n                .padding(padding)\r\n            horizontalAlignment = Alignment.CenterHorizontally,\r\n        ) {\r\n                modifier = Modifier.fillMaxWidth()\r\n            ) {\r\n            }\r\n        }\r\n    }\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/playfoo/com/ui/auth/LoginScreen.kt b/app/src/main/java/playfoo/com/ui/auth/LoginScreen.kt
+--- a/app/src/main/java/playfoo/com/ui/auth/LoginScreen.kt	(revision cdf54d161c808797e7012295e23a21a3499e61d0)
++++ b/app/src/main/java/playfoo/com/ui/auth/LoginScreen.kt	(date 1779155208383)
+@@ -9,14 +9,23 @@
+ import androidx.navigation.NavController
+ 
+ @Composable
++fun LoginScreen(navController: NavController) {
++    Scaffold { padding ->
+         Column(
+             modifier = Modifier
+                 .fillMaxSize()
+                 .padding(padding)
++                .padding(horizontal = 24.dp),
+             horizontalAlignment = Alignment.CenterHorizontally,
++            verticalArrangement = Arrangement.Center
+         ) {
++            Text("Login", style = MaterialTheme.typography.headlineMedium)
++            Spacer(Modifier.height(32.dp))
++            OutlinedButton(
++                onClick = { navController.navigateUp() },
+                 modifier = Modifier.fillMaxWidth()
+             ) {
++                Text("Voltar")
+             }
+         }
+     }
+Index: gradle/libs.versions.toml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>[versions]\r\nagp = \"8.10.1\"\r\ncoreKtx = \"1.10.1\"\r\njunit = \"4.13.2\"\r\njunitVersion = \"1.3.0\"\r\nespressoCore = \"3.7.0\"\r\nlifecycleRuntimeKtx = \"2.6.1\"\r\nactivityCompose = \"1.13.0\"\r\nkotlin = \"2.0.21\"\r\ncomposeBom = \"2026.02.01\"\r\nnavigationCompose = \"2.8.9\"\r\nhilt = \"2.56.2\"\r\nhiltNavigationCompose = \"1.2.0\"\r\nroom = \"2.7.1\"\r\nretrofit = \"2.11.0\"\r\nokhttp = \"4.12.0\"\r\ncoroutines = \"1.10.1\"\r\nlifecycleRuntimeCompose = \"2.8.7\"\r\nlifecycleViewModel = \"2.8.7\"\r\nmpandroidchart = \"3.1.0\"\r\nksp = \"2.0.21-1.0.28\"\r\ncredentials = \"1.5.0\"\r\ngoogleid = \"1.1.1\"\r\n\r\n[libraries]\r\nandroidx-core-ktx = { group = \"androidx.core\", name = \"core-ktx\", version.ref = \"coreKtx\" }\r\njunit = { group = \"junit\", name = \"junit\", version.ref = \"junit\" }\r\nandroidx-junit = { group = \"androidx.test.ext\", name = \"junit\", version.ref = \"junitVersion\" }\r\nandroidx-espresso-core = { group = \"androidx.test.espresso\", name = \"espresso-core\", version.ref = \"espressoCore\" }\r\nandroidx-lifecycle-runtime-ktx = { group = \"androidx.lifecycle\", name = \"lifecycle-runtime-ktx\", version.ref = \"lifecycleRuntimeKtx\" }\r\nandroidx-activity-compose = { group = \"androidx.activity\", name = \"activity-compose\", version.ref = \"activityCompose\" }\r\nandroidx-compose-bom = { group = \"androidx.compose\", name = \"compose-bom\", version.ref = \"composeBom\" }\r\nandroidx-compose-ui = { group = \"androidx.compose.ui\", name = \"ui\" }\r\nandroidx-compose-ui-graphics = { group = \"androidx.compose.ui\", name = \"ui-graphics\" }\r\nandroidx-compose-ui-tooling = { group = \"androidx.compose.ui\", name = \"ui-tooling\" }\r\nandroidx-compose-ui-tooling-preview = { group = \"androidx.compose.ui\", name = \"ui-tooling-preview\" }\r\nandroidx-compose-ui-test-manifest = { group = \"androidx.compose.ui\", name = \"ui-test-manifest\" }\r\nandroidx-compose-ui-test-junit4 = { group = \"androidx.compose.ui\", name = \"ui-test-junit4\" }\r\nandroidx-compose-material3 = { group = \"androidx.compose.material3\", name = \"material3\" }\r\nandroidx-compose-material-icons-core = { group = \"androidx.compose.material\", name = \"material-icons-core\" }\r\nandroidx-compose-material-icons-extended = { group = \"androidx.compose.material\", name = \"material-icons-extended\" }\r\nandroidx-navigation-compose = { group = \"androidx.navigation\", name = \"navigation-compose\", version.ref = \"navigationCompose\" }\r\nhilt-android = { group = \"com.google.dagger\", name = \"hilt-android\", version.ref = \"hilt\" }\r\nhilt-compiler = { group = \"com.google.dagger\", name = \"hilt-compiler\", version.ref = \"hilt\" }\r\nhilt-navigation-compose = { group = \"androidx.hilt\", name = \"hilt-navigation-compose\", version.ref = \"hiltNavigationCompose\" }\r\nroom-runtime = { group = \"androidx.room\", name = \"room-runtime\", version.ref = \"room\" }\r\nroom-ktx = { group = \"androidx.room\", name = \"room-ktx\", version.ref = \"room\" }\r\nroom-compiler = { group = \"androidx.room\", name = \"room-compiler\", version.ref = \"room\" }\r\nretrofit = { group = \"com.squareup.retrofit2\", name = \"retrofit\", version.ref = \"retrofit\" }\r\nretrofit-gson = { group = \"com.squareup.retrofit2\", name = \"converter-gson\", version.ref = \"retrofit\" }\r\nokhttp = { group = \"com.squareup.okhttp3\", name = \"okhttp\", version.ref = \"okhttp\" }\r\nokhttp-logging = { group = \"com.squareup.okhttp3\", name = \"logging-interceptor\", version.ref = \"okhttp\" }\r\nkotlinx-coroutines-android = { group = \"org.jetbrains.kotlinx\", name = \"kotlinx-coroutines-android\", version.ref = \"coroutines\" }\r\nandroidx-lifecycle-viewmodel-ktx = { group = \"androidx.lifecycle\", name = \"lifecycle-viewmodel-ktx\", version.ref = \"lifecycleViewModel\" }\r\nandroidx-lifecycle-viewmodel-compose = { group = \"androidx.lifecycle\", name = \"lifecycle-viewmodel-compose\", version.ref = \"lifecycleViewModel\" }\r\nandroidx-lifecycle-livedata-ktx = { group = \"androidx.lifecycle\", name = \"lifecycle-livedata-ktx\", version.ref = \"lifecycleViewModel\" }\r\nandroidx-lifecycle-runtime-compose = { group = \"androidx.lifecycle\", name = \"lifecycle-runtime-compose\", version.ref = \"lifecycleRuntimeCompose\" }\r\nmpandroidchart = { group = \"com.github.PhilJay\", name = \"MPAndroidChart\", version.ref = \"mpandroidchart\" }\r\nandroidx-credentials = { group = \"androidx.credentials\", name = \"credentials\", version.ref = \"credentials\" }\r\nandroidx-credentials-play-services-auth = { group = \"androidx.credentials\", name = \"credentials-play-services-auth\", version.ref = \"credentials\" }\r\ngoogleid = { group = \"com.google.android.libraries.identity.googleid\", name = \"googleid\", version.ref = \"googleid\" }\r\n\r\n[plugins]\r\nandroid-application = { id = \"com.android.application\", version.ref = \"agp\" }\r\nkotlin-android = { id = \"org.jetbrains.kotlin.android\", version.ref = \"kotlin\" }\r\nkotlin-compose = { id = \"org.jetbrains.kotlin.plugin.compose\", version.ref = \"kotlin\" }\r\nhilt = { id = \"com.google.dagger.hilt.android\", version.ref = \"hilt\" }\r\nksp = { id = \"com.google.devtools.ksp\", version.ref = \"ksp\" }
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/gradle/libs.versions.toml b/gradle/libs.versions.toml
+--- a/gradle/libs.versions.toml	(revision cdf54d161c808797e7012295e23a21a3499e61d0)
++++ b/gradle/libs.versions.toml	(date 1779155603014)
+@@ -1,5 +1,5 @@
+ [versions]
+-agp = "8.10.1"
++agp = "8.13.2"
+ coreKtx = "1.10.1"
+ junit = "4.13.2"
+ junitVersion = "1.3.0"
+Index: app/src/main/java/playfoo/com/domain/AuthUser.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package playfoo.com.domain\r\n\r\ndata class AuthUser(\r\n    val email: String,\r\n)\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/playfoo/com/domain/AuthUser.kt b/app/src/main/java/playfoo/com/domain/AuthUser.kt
+--- a/app/src/main/java/playfoo/com/domain/AuthUser.kt	(revision cdf54d161c808797e7012295e23a21a3499e61d0)
++++ b/app/src/main/java/playfoo/com/domain/AuthUser.kt	(date 1779155185959)
+@@ -1,5 +1,8 @@
+ package playfoo.com.domain
+ 
+ data class AuthUser(
++    val id: String,
++    val nome: String,
+     val email: String,
++    val provedor: AuthProvedor = AuthProvedor.EMAIL
+ )
+Index: app/src/main/java/playfoo/com/data/local/AuthPreferences.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package playfoo.com.data.local\r\n\r\nimport android.content.SharedPreferences\r\nimport playfoo.com.domain.AuthProvedor\r\nimport playfoo.com.domain.AuthUser\r\nimport javax.inject.Inject\r\nimport javax.inject.Singleton\r\n\r\n@Singleton\r\n    fun getUsuario(): AuthUser? {\r\n        return AuthUser(\r\n        )\r\n    }\r\n\r\n        prefs.edit()\r\n            .apply()\r\n    }\r\n\r\n        prefs.edit()\r\n            .apply()\r\n    }\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/playfoo/com/data/local/AuthPreferences.kt b/app/src/main/java/playfoo/com/data/local/AuthPreferences.kt
+--- a/app/src/main/java/playfoo/com/data/local/AuthPreferences.kt	(revision cdf54d161c808797e7012295e23a21a3499e61d0)
++++ b/app/src/main/java/playfoo/com/data/local/AuthPreferences.kt	(date 1779155267153)
+@@ -3,20 +3,79 @@
+ import android.content.SharedPreferences
+ import playfoo.com.domain.AuthProvedor
+ import playfoo.com.domain.AuthUser
++import java.util.UUID
+ import javax.inject.Inject
+ import javax.inject.Singleton
+ 
+ @Singleton
++class AuthPreferences @Inject constructor(
++    private val prefs: SharedPreferences
++) {
++
+     fun getUsuario(): AuthUser? {
++        val id = prefs.getString("auth_id", null) ?: return null
++        val provedorStr = prefs.getString("auth_provedor", AuthProvedor.EMAIL.name)
+         return AuthUser(
++            id       = id,
++            nome     = prefs.getString("auth_nome", "") ?: "",
++            email    = prefs.getString("auth_email", "") ?: "",
++            provedor = runCatching { AuthProvedor.valueOf(provedorStr ?: "") }
++                           .getOrDefault(AuthProvedor.EMAIL)
+         )
+     }
+ 
++    fun temContaEmail(email: String): Boolean =
++        prefs.contains("conta_${email.trim().lowercase()}_id")
++
++    fun registrar(email: String, nome: String, senha: String) {
++        val key = email.trim().lowercase()
++        val id = UUID.randomUUID().toString()
++        prefs.edit()
++            .putString("conta_${key}_id", id)
++            .putString("conta_${key}_nome", nome)
++            .putString("conta_${key}_senha", senha)
++            .putString("auth_id", id)
++            .putString("auth_nome", nome)
++            .putString("auth_email", email.trim())
++            .putString("auth_provedor", AuthProvedor.EMAIL.name)
++            .apply()
++    }
++
++    fun loginEmail(email: String, senha: String): Boolean {
++        val key = email.trim().lowercase()
++        val senhaSalva = prefs.getString("conta_${key}_senha", null) ?: return false
++        if (senhaSalva != senha) return false
++        val id   = prefs.getString("conta_${key}_id", null) ?: return false
++        val nome = prefs.getString("conta_${key}_nome", "") ?: ""
++        prefs.edit()
++            .putString("auth_id", id)
++            .putString("auth_nome", nome)
++            .putString("auth_email", email.trim())
++            .putString("auth_provedor", AuthProvedor.EMAIL.name)
++            .apply()
++        return true
++    }
++
++    fun loginGoogle(email: String, nome: String): AuthUser {
++        val key = email.trim().lowercase()
++        val id = prefs.getString("conta_${key}_id", null) ?: UUID.randomUUID().toString()
+         prefs.edit()
++            .putString("conta_${key}_id", id)
++            .putString("conta_${key}_nome", nome)
++            .putString("auth_id", id)
++            .putString("auth_nome", nome)
++            .putString("auth_email", email.trim())
++            .putString("auth_provedor", AuthProvedor.GOOGLE.name)
+             .apply()
++        return AuthUser(id = id, nome = nome, email = email.trim(), provedor = AuthProvedor.GOOGLE)
+     }
+ 
++    fun logout() {
+         prefs.edit()
++            .remove("auth_id")
++            .remove("auth_nome")
++            .remove("auth_email")
++            .remove("auth_provedor")
+             .apply()
+     }
+ }
