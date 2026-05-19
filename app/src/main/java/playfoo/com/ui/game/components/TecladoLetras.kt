@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import playfoo.com.ui.components.BotaoLetraCartoon
 
 private val LINHAS_TECLADO = listOf(
     listOf('Q','W','E','R','T','Y','U','I','O','P'),
@@ -32,7 +33,7 @@ fun TecladoLetras(
                         in letrasErradas  -> EstadoLetra.ERRADA
                         else              -> EstadoLetra.DISPONIVEL
                     }
-                    BotaoLetra(
+                    BotaoLetraCartoon(
                         letra = letra,
                         estado = estado,
                         onClick = { onLetraClick(letra) }

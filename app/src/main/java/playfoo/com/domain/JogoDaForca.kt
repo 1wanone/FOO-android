@@ -18,5 +18,6 @@ class JogoDaForca {
         return partidaAtual!!
     }
 
-    fun getPartidaAtual(): Partida? = partidaAtual
+    // Retorna null se não há partida ativa ou se a partida já terminou.
+    fun getPartidaAtual(): Partida? = partidaAtual?.takeIf { !it.terminou() }
 }

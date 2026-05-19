@@ -5,6 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,11 +36,26 @@ fun GameScreen(
                 color = MaterialTheme.colorScheme.primary
             )
 
+            // Timer — visível apenas em NORMAL e DIFICIL
+            uiState.timerSegundos?.let { segundos ->
+                val minutos = segundos / 60
+                val segs = segundos % 60
+                val corTimer = if (segundos <= 10) Color(0xFFE53935) else MaterialTheme.colorScheme.onSurface
+                Text(
+                    text = "%02d:%02d".format(minutos, segs),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = corTimer,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
             AvatarView(
                 config = AvatarConfig(),
                 estado = when (uiState.estadoAvatar) {
                     "VITORIA" -> EstadoAvatar.VITORIA
                     "DERROTA" -> EstadoAvatar.DERROTA
+                    "ACERTOU" -> EstadoAvatar.ACERTOU
+                    "ERROU"   -> EstadoAvatar.ERROU
                     else      -> EstadoAvatar.NEUTRO
                 },
                 modifier = Modifier.height(160.dp)
@@ -67,7 +83,7 @@ fun GameScreen(
                 onDismissRequest = {},
                 title = {
                     Text(
-                        text = if (uiState.resultado == ResultadoJogo.VITORIA) "🎉 Você venceu!" else "😢 Game over",
+                        text = if (uiState.resultado == ResultadoJogo.VITORIA) "Você venceu!" else "Game over",
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )

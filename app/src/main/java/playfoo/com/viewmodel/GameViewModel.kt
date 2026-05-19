@@ -2,10 +2,14 @@ package playfoo.com.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import playfoo.com.data.TemaDataSource
 import playfoo.com.data.local.JogadorPreferences
 import playfoo.com.domain.*
@@ -20,7 +24,8 @@ data class GameUiState(
     val estadoAvatar: String = "NEUTRO",
     val tema: String = "",
     val dificuldade: Dificuldade = Dificuldade.NORMAL,
-    val resultado: ResultadoJogo = ResultadoJogo.EM_ANDAMENTO
+    val resultado: ResultadoJogo = ResultadoJogo.EM_ANDAMENTO,
+    val timerSegundos: Int? = null
 )
 
 enum class ResultadoJogo { EM_ANDAMENTO, VITORIA, DERROTA }
@@ -39,6 +44,9 @@ class GameViewModel @Inject constructor(
     private var partidaAtual: Partida? = null
     private var resultadoContabilizado = false
 
+    private var timerJob: Job? = null
+    private var avatarJob: Job? = null
+
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
 
@@ -47,6 +55,8 @@ class GameViewModel @Inject constructor(
     }
 
     fun reiniciar() {
+        timerJob?.cancel()
+        avatarJob?.cancel()
         resultadoContabilizado = false
         novaPartida()
     }
@@ -54,8 +64,19 @@ class GameViewModel @Inject constructor(
     fun tentarLetra(letra: Char) {
         val partida = partidaAtual ?: return
         if (partida.terminou()) return
-        partida.tentativa(letra)
-        atualizarEstado(partida)
+
+        val acertou = partida.tentativa(letra)
+
+        avatarJob?.cancel()
+        val estadoImediato = if (acertou) "ACERTOU" else "ERROU"
+        atualizarEstado(partida, estadoImediato)
+
+        if (!partida.terminou()) {
+            avatarJob = viewModelScope.launch {
+                delay(1000L)
+                atualizarEstado(partida, "NEUTRO")
+            }
+        }
     }
 
     private fun novaPartida() {
@@ -64,10 +85,39 @@ class GameViewModel @Inject constructor(
         val jogador = JogadorAluno(id = "1", nome = "Jogador")
         val partida = jogoDaForca.iniciarPartida(tema, palavra, jogador, dificuldade)
         partidaAtual = partida
-        atualizarEstado(partida)
+
+        _uiState.value = GameUiState(
+            progresso           = partida.getProgresso(),
+            tentativasRestantes = partida.dificuldade.tentativasMaximas,
+            tentativasMaximas   = partida.dificuldade.tentativasMaximas,
+            tema                = partida.tema.nome,
+            dificuldade         = partida.dificuldade,
+            timerSegundos       = dificuldade.tempoSegundos
+        )
+        iniciarTimer()
     }
 
-    private fun atualizarEstado(partida: Partida) {
+    private fun iniciarTimer() {
+        timerJob?.cancel()
+        val segundos = dificuldade.tempoSegundos ?: return
+        timerJob = viewModelScope.launch {
+            var restante = segundos
+            while (restante > 0) {
+                delay(1000L)
+                restante--
+                _uiState.value = _uiState.value.copy(timerSegundos = restante)
+            }
+            // Tempo esgotado — forçar derrota
+            avatarJob?.cancel()
+            val partida = partidaAtual ?: return@launch
+            if (!partida.terminou()) {
+                partida.forcarDerrota()
+                atualizarEstado(partida, "DERROTA")
+            }
+        }
+    }
+
+    private fun atualizarEstado(partida: Partida, estadoAvatar: String) {
         val resultado = when {
             partida.venceu()   -> ResultadoJogo.VITORIA
             partida.terminou() -> ResultadoJogo.DERROTA
@@ -75,16 +125,23 @@ class GameViewModel @Inject constructor(
         }
         if (!resultadoContabilizado && resultado != ResultadoJogo.EM_ANDAMENTO) {
             resultadoContabilizado = true
+            timerJob?.cancel()
             if (resultado == ResultadoJogo.VITORIA) jogadorPrefs.registrarVitoria()
             else jogadorPrefs.registrarDerrota()
         }
-        _uiState.value = GameUiState(
+        val avatarFinal = when (resultado) {
+            ResultadoJogo.VITORIA      -> "VITORIA"
+            ResultadoJogo.DERROTA      -> "DERROTA"
+            ResultadoJogo.EM_ANDAMENTO -> estadoAvatar
+        }
+        // .copy() preserva timerSegundos gerenciado pelo timerJob
+        _uiState.value = _uiState.value.copy(
             progresso           = partida.getProgresso(),
             tentativasRestantes = partida.getTentativasRestantes(),
             tentativasMaximas   = partida.dificuldade.tentativasMaximas,
             letrasCorretas      = partida.getLetrasCorretas(),
             letrasErradas       = partida.getLetrasErradas(),
-            estadoAvatar        = resultado.name,
+            estadoAvatar        = avatarFinal,
             tema                = partida.tema.nome,
             dificuldade         = partida.dificuldade,
             resultado           = resultado

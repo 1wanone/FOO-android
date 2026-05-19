@@ -10,8 +10,11 @@ data class Partida(
     private val letrasErradas: MutableSet<Char> = mutableSetOf(),
     private val letrasCorretas: MutableSet<Char> = mutableSetOf()
 ) {
+    // Retorna true se acertou, false se errou. Ignora letra já tentada.
     fun tentativa(letra: Char): Boolean {
         val letraUpper = letra.uppercaseChar()
+        if (letraUpper in letrasCorretas) return true
+        if (letraUpper in letrasErradas) return false
         return if (palavra.contemLetra(letraUpper)) {
             letrasCorretas.add(letraUpper)
             true
@@ -20,6 +23,11 @@ data class Partida(
             tentativasRestantes--
             false
         }
+    }
+
+    // Chamado quando o timer expira para forçar estado de derrota.
+    fun forcarDerrota() {
+        tentativasRestantes = 0
     }
 
     fun venceu(): Boolean = palavra.todasLetrasReveladas(letrasCorretas)
