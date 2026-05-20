@@ -1,6 +1,9 @@
 package playfoo.com.data.remote
 
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -214,6 +217,116 @@ class FirestoreRepository @Inject constructor() {
     } catch (e: Exception) {
         Result.failure(e)
     }
+
+    // ── Multiplayer ──────────────────────────────────────────────────────────
+
+    suspend fun criarSalaMultiplayer(
+        jogador1Id: String,
+        jogador1Nome: String,
+        tema: String,
+        palavra: String,
+        dificuldade: String
+    ): Result<Map<String, Any>> = try {
+        val codigo = (100000..999999).random().toString()
+        val sala = hashMapOf<String, Any?>(
+            "codigo"        to codigo,
+            "jogador1Id"    to jogador1Id,
+            "jogador1Nome"  to jogador1Nome,
+            "jogador2Id"    to null,
+            "jogador2Nome"  to null,
+            "tema"          to tema,
+            "palavra"       to palavra,
+            "dificuldade"   to dificuldade,
+            "status"        to "aguardando",
+            "progresso1"    to "",
+            "progresso2"    to "",
+            "tentativas1"   to 0,
+            "tentativas2"   to 0,
+            "letrasErradas1" to "",
+            "letrasErradas2" to "",
+            "vencedor"      to null,
+            "timestamp"     to com.google.firebase.firestore.FieldValue.serverTimestamp()
+        )
+        val doc = db.collection("salas").add(sala).await()
+        Result.success(mapOf("id" to doc.id, "codigo" to codigo))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    suspend fun getSalaPorCodigo(codigo: String): Result<Pair<String, Map<String, Any>>> = try {
+        val snapshot = db.collection("salas")
+            .whereEqualTo("codigo", codigo)
+            .whereEqualTo("status", "aguardando")
+            .get()
+            .await()
+        if (snapshot.isEmpty)
+            Result.failure(Exception("Sala não encontrada ou já iniciada"))
+        else {
+            val doc = snapshot.documents.first()
+            Result.success(Pair(doc.id, doc.data!!))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    suspend fun entrarNaSala(
+        salaId: String,
+        jogador2Id: String,
+        jogador2Nome: String
+    ): Result<Unit> = try {
+        db.collection("salas").document(salaId).update(
+            mapOf(
+                "jogador2Id"   to jogador2Id,
+                "jogador2Nome" to jogador2Nome,
+                "status"       to "jogando"
+            )
+        ).await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    suspend fun atualizarProgressoSala(
+        salaId: String,
+        numero: Int,
+        progresso: String,
+        tentativas: Int,
+        letrasErradas: String
+    ): Result<Unit> = try {
+        db.collection("salas").document(salaId).update(
+            mapOf(
+                "progresso$numero"    to progresso,
+                "tentativas$numero"   to tentativas,
+                "letrasErradas$numero" to letrasErradas
+            )
+        ).await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    suspend fun finalizarSala(salaId: String, vencedorId: String): Result<Unit> = try {
+        db.collection("salas").document(salaId).update(
+            mapOf(
+                "status"   to "finalizada",
+                "vencedor" to vencedorId
+            )
+        ).await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    fun escutarSala(salaId: String): Flow<Map<String, Any>> = callbackFlow {
+        val listener = db.collection("salas").document(salaId)
+            .addSnapshotListener { snap, err ->
+                if (err != null) { close(err); return@addSnapshotListener }
+                snap?.data?.let { trySend(it) }
+            }
+        awaitClose { listener.remove() }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Estatísticas pessoais do aluno
     suspend fun getEstatisticasAluno(jogadorId: String): Result<Map<String, Any>> = try {

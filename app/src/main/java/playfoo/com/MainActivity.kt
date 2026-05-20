@@ -56,7 +56,9 @@ fun ForcaNavHost() {
         composable("jogo/{temaId}/{dificuldade}") {
             GameScreen(onVoltar = { navController.navigateUp() })
         }
-        composable("multiplayer") { MultiplayerScreen(navController) }
+        composable("multiplayer") {
+            MultiplayerScreen(onVoltar = { navController.navigateUp() })
+        }
         composable("turmas") {
             TurmaScreen(
                 onVoltar = { navController.navigateUp() },
