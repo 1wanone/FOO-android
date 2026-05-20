@@ -10,8 +10,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
 import playfoo.com.data.TemaDataSource
 import playfoo.com.data.local.JogadorPreferences
+import playfoo.com.data.remote.FirestoreRepository
 import playfoo.com.domain.*
 import javax.inject.Inject
 
@@ -33,7 +35,8 @@ enum class ResultadoJogo { EM_ANDAMENTO, VITORIA, DERROTA }
 @HiltViewModel
 class GameViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val jogadorPrefs: JogadorPreferences
+    private val jogadorPrefs: JogadorPreferences,
+    private val firestoreRepository: FirestoreRepository
 ) : ViewModel() {
 
     private val temaId: Int = savedStateHandle.get<String>("temaId")?.toIntOrNull() ?: 1
@@ -46,6 +49,7 @@ class GameViewModel @Inject constructor(
 
     private var timerJob: Job? = null
     private var avatarJob: Job? = null
+    private var tempoInicioPartida = 0L
 
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
@@ -85,6 +89,7 @@ class GameViewModel @Inject constructor(
         val jogador = JogadorAluno(id = "1", nome = "Jogador")
         val partida = jogoDaForca.iniciarPartida(tema, palavra, jogador, dificuldade)
         partidaAtual = partida
+        tempoInicioPartida = System.currentTimeMillis()
 
         _uiState.value = GameUiState(
             progresso           = partida.getProgresso(),
@@ -128,6 +133,22 @@ class GameViewModel @Inject constructor(
             timerJob?.cancel()
             if (resultado == ResultadoJogo.VITORIA) jogadorPrefs.registrarVitoria()
             else jogadorPrefs.registrarDerrota()
+            val uid = FirebaseAuth.getInstance().currentUser?.uid
+            if (uid != null) {
+                val tempoDecorrido = ((System.currentTimeMillis() - tempoInicioPartida) / 1000).toInt()
+                val tentativasUsadas = partida.dificuldade.tentativasMaximas - partida.getTentativasRestantes()
+                viewModelScope.launch {
+                    firestoreRepository.salvarPartida(
+                        jogadorId        = uid,
+                        tema             = partida.tema.nome,
+                        palavra          = partida.palavra.texto,
+                        dificuldade      = partida.dificuldade.name,
+                        venceu           = resultado == ResultadoJogo.VITORIA,
+                        tentativasUsadas = tentativasUsadas,
+                        tempoSegundos    = tempoDecorrido
+                    )
+                }
+            }
         }
         val avatarFinal = when (resultado) {
             ResultadoJogo.VITORIA      -> "VITORIA"

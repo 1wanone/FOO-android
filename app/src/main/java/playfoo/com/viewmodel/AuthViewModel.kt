@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import playfoo.com.data.local.AuthPreferences
+import playfoo.com.data.remote.FirebaseAuthRepository
 import playfoo.com.domain.AuthUser
 import javax.inject.Inject
 
@@ -27,33 +27,45 @@ sealed class AuthUiState {
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authPrefs: AuthPreferences
+    private val firebaseAuthRepository: FirebaseAuthRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
     val state: StateFlow<AuthUiState> = _state.asStateFlow()
 
+    init {
+        val usuario = firebaseAuthRepository.getUsuarioAtual()
+        if (usuario != null) {
+            _state.value = AuthUiState.Sucesso(usuario)
+        }
+    }
+
     fun login(email: String, senha: String) {
         val erro = validarLogin(email, senha)
         if (erro != null) { _state.value = AuthUiState.Erro(erro); return }
 
-        _state.value = AuthUiState.Carregando
-        val ok = authPrefs.loginEmail(email, senha)
-        _state.value = if (ok) AuthUiState.Sucesso(authPrefs.getUsuario()!!)
-                       else AuthUiState.Erro("Email ou senha incorretos")
+        viewModelScope.launch {
+            _state.value = AuthUiState.Carregando
+            val result = firebaseAuthRepository.loginEmail(email, senha)
+            _state.value = result.fold(
+                onSuccess = { AuthUiState.Sucesso(it) },
+                onFailure = { AuthUiState.Erro("Email ou senha incorretos") }
+            )
+        }
     }
 
     fun registrar(nome: String, email: String, senha: String, confirmar: String) {
         val erro = validarCadastro(nome, email, senha, confirmar)
         if (erro != null) { _state.value = AuthUiState.Erro(erro); return }
 
-        if (authPrefs.temContaEmail(email)) {
-            _state.value = AuthUiState.Erro("Já existe uma conta com este email")
-            return
+        viewModelScope.launch {
+            _state.value = AuthUiState.Carregando
+            val result = firebaseAuthRepository.registrar(nome, email, senha)
+            _state.value = result.fold(
+                onSuccess = { AuthUiState.Sucesso(it) },
+                onFailure = { AuthUiState.Erro(it.localizedMessage ?: "Erro ao criar conta") }
+            )
         }
-        _state.value = AuthUiState.Carregando
-        authPrefs.registrar(email, nome, senha)
-        _state.value = AuthUiState.Sucesso(authPrefs.getUsuario()!!)
     }
 
     fun loginGoogle(context: Context) {
@@ -73,11 +85,11 @@ class AuthViewModel @Inject constructor(
                 if (cred is CustomCredential &&
                     cred.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                     val googleCred = GoogleIdTokenCredential.createFrom(cred.data)
-                    val user = authPrefs.loginGoogle(
-                        email = googleCred.id,
-                        nome  = googleCred.displayName ?: googleCred.id.substringBefore("@")
+                    val result = firebaseAuthRepository.loginGoogle(googleCred.idToken)
+                    _state.value = result.fold(
+                        onSuccess = { AuthUiState.Sucesso(it) },
+                        onFailure = { AuthUiState.Erro(it.localizedMessage ?: "Erro no login com Google") }
                     )
-                    _state.value = AuthUiState.Sucesso(user)
                 } else {
                     _state.value = AuthUiState.Erro("Tipo de credencial não suportado")
                 }
@@ -89,6 +101,23 @@ class AuthViewModel @Inject constructor(
                 _state.value = AuthUiState.Erro("Erro inesperado: ${e.localizedMessage}")
             }
         }
+    }
+
+    fun recuperarSenha(email: String) {
+        if (email.isBlank()) { _state.value = AuthUiState.Erro("Informe o email"); return }
+        viewModelScope.launch {
+            _state.value = AuthUiState.Carregando
+            val result = firebaseAuthRepository.recuperarSenha(email)
+            _state.value = result.fold(
+                onSuccess = { AuthUiState.Idle },
+                onFailure = { AuthUiState.Erro(it.localizedMessage ?: "Erro ao enviar email") }
+            )
+        }
+    }
+
+    fun logout() {
+        firebaseAuthRepository.logout()
+        _state.value = AuthUiState.Idle
     }
 
     fun limparEstado() { _state.value = AuthUiState.Idle }
@@ -109,8 +138,6 @@ class AuthViewModel @Inject constructor(
     }
 
     companion object {
-        // Substitua pelo Web Client ID do seu projeto no Google Cloud Console ou Firebase
-        // Veja: https://console.cloud.google.com/apis/credentials
-        const val WEB_CLIENT_ID = "SEU_WEB_CLIENT_ID.apps.googleusercontent.com"
+        const val WEB_CLIENT_ID = "655065082008-o6bsql5hmocp4u2klp7ckk3bq0a9odhf.apps.googleusercontent.com"
     }
 }

@@ -12,7 +12,20 @@
           "package_name": "playfoo.com"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "655065082008-nj9eemqq1g618b59ibclj11l0oolk3mg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "playfoo.com",
+            "certificate_hash": "92706a649ea77801717766f5db22e6c62ef726d7"
+          }
+        },
+        {
+          "client_id": "655065082008-o6bsql5hmocp4u2klp7ckk3bq0a9odhf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAMw1veRUvCkQAjMb3EYVpFYXHB_QgwXzU"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "655065082008-o6bsql5hmocp4u2klp7ckk3bq0a9odhf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
