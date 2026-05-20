@@ -6,14 +6,17 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -65,7 +68,7 @@ import playfoo.com.domain.TipoUsuario
 import playfoo.com.viewmodel.AuthUiState
 import playfoo.com.viewmodel.AuthViewModel
 
-private enum class TelaAuth { LOGIN, REGISTRO, RECUPERAR_SENHA }
+private enum class TelaAuth { LOGIN, REGISTRO, RECUPERAR_SENHA, ESCOLHER_TIPO }
 
 @Composable
 fun LoginScreen(
@@ -78,14 +81,17 @@ fun LoginScreen(
 
     LaunchedEffect(authState) {
         if (authState is AuthUiState.Sucesso) {
-            val usuario = (authState as AuthUiState.Sucesso).usuario
-            val destino = if (usuario.tipo == TipoUsuario.GESTOR) "dashboard"
-                          else "menu?tipo=${usuario.tipo}"
-            navController.navigate(destino) {
-                popUpTo("login") { inclusive = true }
-                launchSingleTop = true
+            val sucesso = authState as AuthUiState.Sucesso
+            if (sucesso.precisaEscolherTipo) {
+                telaAtual = TelaAuth.ESCOLHER_TIPO
+            } else {
+                val destino = "menu?tipo=${sucesso.usuario.tipo}"
+                navController.navigate(destino) {
+                    popUpTo("login") { inclusive = true }
+                    launchSingleTop = true
+                }
+                viewModel.limparEstado()
             }
-            viewModel.limparEstado()
         }
     }
 
@@ -130,6 +136,12 @@ fun LoginScreen(
                     )
                     TelaAuth.RECUPERAR_SENHA -> CardRecuperarSenha(
                         onVoltarLogin = { viewModel.limparEstado(); telaAtual = TelaAuth.LOGIN }
+                    )
+                    TelaAuth.ESCOLHER_TIPO -> TelaEscolherTipo(
+                        carregando = authState is AuthUiState.Carregando,
+                        onEscolher = { tipo, codigo ->
+                            viewModel.finalizarCadastroGoogle(tipo, codigo)
+                        }
                     )
                 }
             }
@@ -478,6 +490,125 @@ private fun CardRecuperarSenha(onVoltarLogin: () -> Unit) {
             modifier = Modifier.align(Alignment.CenterHorizontally)
         ) {
             Text("← Voltar ao login", color = Color(0xFF6C63FF))
+        }
+    }
+}
+
+@Composable
+private fun TelaEscolherTipo(
+    carregando: Boolean,
+    onEscolher: (tipo: String, codigo: String) -> Unit
+) {
+    var codigoProfessor by remember { mutableStateOf("") }
+    var tipoSelecionado by remember { mutableStateOf(TipoUsuario.ALUNO) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Spacer(Modifier.height(32.dp))
+
+        Text("👋", fontSize = 64.sp)
+        Text(
+            text = "Bem-vindo!",
+            style = MaterialTheme.typography.headlineMedium,
+            color = Color.White,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "Como você vai usar o app?",
+            color = Color.White.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Card Aluno
+        CardCartoon(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { tipoSelecionado = TipoUsuario.ALUNO },
+            corBorda = if (tipoSelecionado == TipoUsuario.ALUNO) Color(0xFF6C63FF)
+                       else Color.White.copy(alpha = 0.2f)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("👨‍🎓", fontSize = 40.sp)
+                Spacer(Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = "Sou Aluno",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                    Text(
+                        text = "Jogar e ver minhas estatísticas",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
+
+        // Card Professor
+        CardCartoon(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { tipoSelecionado = TipoUsuario.GESTOR },
+            corBorda = if (tipoSelecionado == TipoUsuario.GESTOR) Color(0xFFFF9800)
+                       else Color.White.copy(alpha = 0.2f)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("👨‍🏫", fontSize = 40.sp)
+                Spacer(Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = "Sou Professor",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                    Text(
+                        text = "Gerenciar turmas e ver dashboard",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
+
+        // Campo código — só aparece se selecionou Professor
+        if (tipoSelecionado == TipoUsuario.GESTOR) {
+            OutlinedTextField(
+                value = codigoProfessor,
+                onValueChange = { codigoProfessor = it.uppercase() },
+                label = { Text("Código de professor", color = Color.White.copy(alpha = 0.7f)) },
+                placeholder = { Text("Digite o código", color = Color.White.copy(alpha = 0.4f)) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor     = Color.White,
+                    unfocusedTextColor   = Color.White,
+                    focusedBorderColor   = Color(0xFFFF9800),
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.3f)
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        if (carregando) {
+            CircularProgressIndicator(color = Color(0xFF6C63FF))
+        } else {
+            BotaoCartoon(
+                texto    = "Continuar",
+                onClick  = { onEscolher(tipoSelecionado, codigoProfessor) },
+                tipo     = BotaoCartoonTipo.PRIMARIO,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

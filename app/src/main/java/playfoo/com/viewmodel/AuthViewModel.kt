@@ -14,8 +14,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
 import playfoo.com.data.remote.FirebaseAuthRepository
 import playfoo.com.data.remote.FirestoreRepository
+import playfoo.com.domain.AuthProvedor
 import playfoo.com.domain.AuthUser
 import playfoo.com.domain.TipoUsuario
 import javax.inject.Inject
@@ -23,7 +25,7 @@ import javax.inject.Inject
 sealed class AuthUiState {
     object Idle : AuthUiState()
     object Carregando : AuthUiState()
-    data class Sucesso(val usuario: AuthUser) : AuthUiState()
+    data class Sucesso(val usuario: AuthUser, val precisaEscolherTipo: Boolean = false) : AuthUiState()
     data class Erro(val mensagem: String) : AuthUiState()
 }
 
@@ -101,9 +103,13 @@ class AuthViewModel @Inject constructor(
                     val googleCred = GoogleIdTokenCredential.createFrom(cred.data)
                     firebaseAuthRepository.loginGoogle(googleCred.idToken)
                         .onSuccess { user ->
-                            val tipo = firestoreRepository.getUsuario(user.id)
-                                .getOrNull()?.get("tipo")?.toString() ?: TipoUsuario.ALUNO
-                            _state.value = AuthUiState.Sucesso(user.copy(tipo = tipo))
+                            val usuarioData = firestoreRepository.getUsuario(user.id)
+                            if (usuarioData.isSuccess) {
+                                val tipo = usuarioData.getOrNull()?.get("tipo")?.toString() ?: TipoUsuario.ALUNO
+                                _state.value = AuthUiState.Sucesso(user.copy(tipo = tipo))
+                            } else {
+                                _state.value = AuthUiState.Sucesso(user, precisaEscolherTipo = true)
+                            }
                         }
                         .onFailure { _state.value = AuthUiState.Erro(it.localizedMessage ?: "Erro no login com Google") }
                 } else {
@@ -137,6 +143,30 @@ class AuthViewModel @Inject constructor(
     }
 
     fun limparEstado() { _state.value = AuthUiState.Idle }
+
+    fun finalizarCadastroGoogle(tipo: String, codigoProfessor: String) {
+        val firebaseUser = FirebaseAuth.getInstance().currentUser ?: return
+        val tipoFinal = if (tipo == TipoUsuario.GESTOR &&
+                            codigoProfessor.trim().uppercase() == TipoUsuario.CODIGO_PROFESSOR)
+            TipoUsuario.GESTOR else TipoUsuario.ALUNO
+        viewModelScope.launch {
+            _state.value = AuthUiState.Carregando
+            firestoreRepository.salvarUsuario(
+                id    = firebaseUser.uid,
+                nome  = firebaseUser.displayName ?: "Usuário",
+                email = firebaseUser.email ?: "",
+                tipo  = tipoFinal
+            )
+            val authUser = AuthUser(
+                id       = firebaseUser.uid,
+                nome     = firebaseUser.displayName ?: "Usuário",
+                email    = firebaseUser.email ?: "",
+                provedor = AuthProvedor.GOOGLE,
+                tipo     = tipoFinal
+            )
+            _state.value = AuthUiState.Sucesso(authUser)
+        }
+    }
 
     private fun validarLogin(email: String, senha: String): String? {
         if (email.isBlank() || senha.isBlank()) return "Preencha todos os campos"

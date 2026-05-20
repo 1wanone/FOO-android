@@ -28,7 +28,7 @@ fun MenuScreen(
         Button(onClick = { navController.navigate("multiplayer") }) { Text("Multiplayer") }
         Button(onClick = { navController.navigate("turmas") }) { Text("Turmas") }
         if (tipo == TipoUsuario.GESTOR) {
-            Button(onClick = { navController.navigate("dashboard") }) { Text("Dashboard") }
+            Button(onClick = { navController.navigate("turmas") }) { Text("Dashboard") }
         }
         Button(onClick = { navController.navigate("perfil") }) { Text("Perfil") }
     }

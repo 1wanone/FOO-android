@@ -57,8 +57,19 @@ fun ForcaNavHost() {
             GameScreen(onVoltar = { navController.navigateUp() })
         }
         composable("multiplayer") { MultiplayerScreen(navController) }
-        composable("turmas") { TurmaScreen(onVoltar = { navController.navigateUp() }) }
-        composable("dashboard") { DashboardScreen(onVoltar = { navController.navigateUp() }) }
+        composable("turmas") {
+            TurmaScreen(
+                onVoltar = { navController.navigateUp() },
+                onNavDashboard = { turmaId -> navController.navigate("dashboard/$turmaId") }
+            )
+        }
+        composable(
+            route = "dashboard/{turmaId}",
+            arguments = listOf(navArgument("turmaId") { defaultValue = "demo" })
+        ) { backStackEntry ->
+            val turmaId = backStackEntry.arguments?.getString("turmaId") ?: "demo"
+            DashboardScreen(turmaId = turmaId, onVoltar = { navController.navigateUp() })
+        }
         composable("perfil") { PerfilScreen(navController) }
         composable("login") { LoginScreen(navController) }
     }

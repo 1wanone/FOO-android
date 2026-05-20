@@ -66,10 +66,25 @@ class DashboardViewModel @Inject constructor(
     fun carregarDados(turmaId: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(carregando = true, turmaId = turmaId)
+
+            // Garante tipoUsuario atualizado antes de processar stats
+            val uid = auth.currentUser?.uid
+            if (uid != null) {
+                firestoreRepository.getUsuario(uid).onSuccess { data ->
+                    val tipo = data["tipo"]?.toString() ?: TipoUsuario.ALUNO
+                    _uiState.value = _uiState.value.copy(tipoUsuario = tipo)
+                }
+            }
+
             firestoreRepository.getPartidasTurma(turmaId)
                 .onSuccess { partidas ->
+                    val tipoAtual = _uiState.value.tipoUsuario
                     val stats = processarEstatisticas(partidas)
-                    _uiState.value = stats.copy(carregando = false, turmaId = turmaId)
+                    _uiState.value = stats.copy(
+                        carregando = false,
+                        turmaId = turmaId,
+                        tipoUsuario = tipoAtual
+                    )
                 }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(

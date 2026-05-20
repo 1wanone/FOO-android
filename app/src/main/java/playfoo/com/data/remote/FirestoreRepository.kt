@@ -102,7 +102,7 @@ class FirestoreRepository @Inject constructor() {
             turmas.document(doc.id)
                 .update("membros", com.google.firebase.firestore.FieldValue.arrayUnion(jogadorId))
                 .await()
-            Result.success(doc.data!!)
+            Result.success(doc.data!!.plus("id" to doc.id))
         }
     } catch (e: Exception) {
         Result.failure(e)
@@ -133,6 +133,38 @@ class FirestoreRepository @Inject constructor() {
         val doc = usuarios.document(id).get().await()
         if (doc.exists()) Result.success(doc.data!!)
         else Result.failure(Exception("Usuário não encontrado"))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    suspend fun getTurmasDoGestor(gestorId: String): Result<List<Map<String, Any>>> = try {
+        val snapshot = turmas
+            .whereEqualTo("gestorId", gestorId)
+            .get()
+            .await()
+        Result.success(snapshot.documents.mapNotNull {
+            it.data?.plus("id" to it.id)
+        })
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    suspend fun getTurmaDoAluno(jogadorId: String): Result<Map<String, Any>?> = try {
+        val snapshot = turmas
+            .whereArrayContains("membros", jogadorId)
+            .get()
+            .await()
+        val turma = snapshot.documents.firstOrNull()
+        Result.success(turma?.data?.plus("id" to turma.id))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    suspend fun sairDaTurma(turmaId: String, jogadorId: String): Result<Unit> = try {
+        turmas.document(turmaId)
+            .update("membros", com.google.firebase.firestore.FieldValue.arrayRemove(jogadorId))
+            .await()
+        Result.success(Unit)
     } catch (e: Exception) {
         Result.failure(e)
     }

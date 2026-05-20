@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import playfoo.com.data.remote.FirestoreRepository
+import playfoo.com.domain.TipoUsuario
 import javax.inject.Inject
 
 data class TurmaUiState(
@@ -16,6 +17,8 @@ data class TurmaUiState(
     val erro: String? = null,
     val sucesso: String? = null,
     val turmaAtual: Map<String, Any>? = null,
+    val turmasDoGestor: List<Map<String, Any>> = emptyList(),
+    val tipoUsuario: String = TipoUsuario.ALUNO,
     val membros: List<Map<String, Any>> = emptyList(),
     val partidas: List<Map<String, Any>> = emptyList(),
     val telaTurma: TelaTurma = TelaTurma.INICIAL
@@ -31,6 +34,21 @@ class TurmaViewModel @Inject constructor(
     private val auth = FirebaseAuth.getInstance()
     private val _uiState = MutableStateFlow(TurmaUiState())
     val uiState: StateFlow<TurmaUiState> = _uiState.asStateFlow()
+
+    init {
+        val uid = auth.currentUser?.uid
+        if (uid != null) {
+            viewModelScope.launch {
+                firestoreRepository.getUsuario(uid)
+                    .onSuccess { data ->
+                        val tipo = data["tipo"]?.toString() ?: TipoUsuario.ALUNO
+                        _uiState.value = _uiState.value.copy(tipoUsuario = tipo)
+                        if (tipo == TipoUsuario.GESTOR) carregarTurmasGestor()
+                        else carregarTurmaAluno()
+                    }
+            }
+        }
+    }
 
     fun irPara(tela: TelaTurma) {
         _uiState.value = _uiState.value.copy(
@@ -56,6 +74,7 @@ class TurmaViewModel @Inject constructor(
                         sucesso = "Turma criada! Código: $codigo",
                         telaTurma = TelaTurma.INICIAL
                     )
+                    carregarTurmasGestor()
                 }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
@@ -87,6 +106,48 @@ class TurmaViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         carregando = false,
                         erro = e.message ?: "Turma não encontrada"
+                    )
+                }
+        }
+    }
+
+    fun carregarTurmasGestor() {
+        val gestorId = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            firestoreRepository.getTurmasDoGestor(gestorId)
+                .onSuccess { lista ->
+                    _uiState.value = _uiState.value.copy(turmasDoGestor = lista)
+                }
+        }
+    }
+
+    fun carregarTurmaAluno() {
+        val alunoId = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            firestoreRepository.getTurmaDoAluno(alunoId)
+                .onSuccess { turma ->
+                    _uiState.value = _uiState.value.copy(turmaAtual = turma)
+                }
+        }
+    }
+
+    fun sairDaTurma() {
+        val alunoId = auth.currentUser?.uid ?: return
+        val turmaId = _uiState.value.turmaAtual?.get("id")?.toString() ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(carregando = true)
+            firestoreRepository.sairDaTurma(turmaId, alunoId)
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        carregando = false,
+                        turmaAtual = null,
+                        sucesso = "Saiu da turma com sucesso"
+                    )
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        carregando = false,
+                        erro = e.message ?: "Erro ao sair da turma"
                     )
                 }
         }

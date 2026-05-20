@@ -22,17 +22,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import playfoo.com.domain.TipoUsuario
 import playfoo.com.ui.components.BotaoCartoon
 import playfoo.com.ui.components.BotaoCartoonTipo
 import playfoo.com.ui.components.CardCartoon
 import playfoo.com.ui.components.FundoTela
 import playfoo.com.ui.components.TipoFundo
 import playfoo.com.viewmodel.TelaTurma
+import playfoo.com.viewmodel.TurmaUiState
 import playfoo.com.viewmodel.TurmaViewModel
 
 @Composable
 fun TurmaScreen(
     onVoltar: () -> Unit = {},
+    onNavDashboard: (turmaId: String) -> Unit = {},
     viewModel: TurmaViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -61,6 +64,9 @@ fun TurmaScreen(
                     onVoltar = onVoltar,
                     onCriar = { viewModel.irPara(TelaTurma.CRIAR) },
                     onEntrar = { viewModel.irPara(TelaTurma.ENTRAR) },
+                    onVerDetalhes = { viewModel.irPara(TelaTurma.DETALHES) },
+                    onSairDaTurma = { viewModel.sairDaTurma() },
+                    onNavDashboard = onNavDashboard,
                     onLimpar = { viewModel.limparMensagens() }
                 )
                 TelaTurma.CRIAR -> TelaCriarTurma(
@@ -84,10 +90,13 @@ fun TurmaScreen(
 
 @Composable
 private fun TelaInicialTurma(
-    uiState: playfoo.com.viewmodel.TurmaUiState,
+    uiState: TurmaUiState,
     onVoltar: () -> Unit,
     onCriar: () -> Unit,
     onEntrar: () -> Unit,
+    onVerDetalhes: () -> Unit,
+    onSairDaTurma: () -> Unit,
+    onNavDashboard: (String) -> Unit,
     onLimpar: () -> Unit
 ) {
     Column(
@@ -140,33 +149,161 @@ private fun TelaInicialTurma(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        if (uiState.tipoUsuario == TipoUsuario.GESTOR) {
+            ConteudoGestor(
+                uiState = uiState,
+                onCriar = onCriar,
+                onNavDashboard = onNavDashboard
+            )
+        } else {
+            ConteudoAluno(
+                uiState = uiState,
+                onEntrar = onEntrar,
+                onVerDetalhes = onVerDetalhes,
+                onSairDaTurma = onSairDaTurma
+            )
+        }
+    }
+}
 
-        Text(text = "🏫", fontSize = 80.sp)
+@Composable
+private fun ConteudoGestor(
+    uiState: TurmaUiState,
+    onCriar: () -> Unit,
+    onNavDashboard: (String) -> Unit
+) {
+    Text(text = "🏫", fontSize = 64.sp)
+    Text(
+        text = "Minhas Turmas",
+        style = MaterialTheme.typography.titleLarge,
+        color = Color.White,
+        fontWeight = FontWeight.Bold,
+        textAlign = TextAlign.Center
+    )
 
+    if (uiState.turmasDoGestor.isEmpty()) {
         Text(
-            text = "Gerencie suas turmas",
-            style = MaterialTheme.typography.titleLarge,
-            color = Color.White,
-            textAlign = TextAlign.Center
-        )
-
-        Text(
-            text = "Crie uma turma ou entre em uma existente usando o código fornecido pelo professor",
+            text = "Você ainda não criou nenhuma turma",
             style = MaterialTheme.typography.bodyMedium,
             color = Color.White.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
         )
+    } else {
+        uiState.turmasDoGestor.forEach { turma ->
+            val turmaId = turma["id"]?.toString() ?: ""
+            val nome = turma["nome"]?.toString() ?: "Turma"
+            val codigo = turma["codigo"]?.toString() ?: ""
+            CardCartoon(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = nome,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Código:", color = Color.White.copy(alpha = 0.7f))
+                        Text(
+                            text = codigo,
+                            color = Color(0xFF6C63FF),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
+                    BotaoCartoon(
+                        texto = "📊  Ver Dashboard",
+                        onClick = { onNavDashboard(turmaId) },
+                        tipo = BotaoCartoonTipo.PRIMARIO,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
 
-        Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(8.dp))
 
+    BotaoCartoon(
+        texto = "🎓  Criar nova turma",
+        onClick = onCriar,
+        tipo = BotaoCartoonTipo.SECUNDARIO,
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+private fun ConteudoAluno(
+    uiState: TurmaUiState,
+    onEntrar: () -> Unit,
+    onVerDetalhes: () -> Unit,
+    onSairDaTurma: () -> Unit
+) {
+    if (uiState.turmaAtual != null) {
+        val turma = uiState.turmaAtual
+        Text(text = "🏫", fontSize = 64.sp)
+        Text(
+            text = "Minha Turma",
+            style = MaterialTheme.typography.titleLarge,
+            color = Color.White,
+            fontWeight = FontWeight.Bold
+        )
+        CardCartoon(modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = turma["nome"]?.toString() ?: "Turma",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = "Código:", color = Color.White.copy(alpha = 0.7f))
+                    Text(
+                        text = turma["codigo"]?.toString() ?: "",
+                        color = Color(0xFF6C63FF),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                }
+            }
+        }
         BotaoCartoon(
-            texto = "🎓  Criar turma",
-            onClick = onCriar,
+            texto = "📋  Ver detalhes",
+            onClick = onVerDetalhes,
             tipo = BotaoCartoonTipo.PRIMARIO,
             modifier = Modifier.fillMaxWidth()
         )
-
+        if (uiState.carregando) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color(0xFFE53935))
+            }
+        } else {
+            BotaoCartoon(
+                texto = "🚪  Sair da turma",
+                onClick = onSairDaTurma,
+                tipo = BotaoCartoonTipo.PERIGO,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    } else {
+        Text(text = "🔑", fontSize = 80.sp)
+        Text(
+            text = "Você não está em uma turma",
+            style = MaterialTheme.typography.titleLarge,
+            color = Color.White,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Entre em uma turma usando o código fornecido pelo professor",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
         BotaoCartoon(
             texto = "🔑  Entrar com código",
             onClick = onEntrar,
@@ -178,7 +315,7 @@ private fun TelaInicialTurma(
 
 @Composable
 private fun TelaCriarTurma(
-    uiState: playfoo.com.viewmodel.TurmaUiState,
+    uiState: TurmaUiState,
     onVoltar: () -> Unit,
     onCriar: (String) -> Unit
 ) {
@@ -263,7 +400,7 @@ private fun TelaCriarTurma(
 
 @Composable
 private fun TelaEntrarTurma(
-    uiState: playfoo.com.viewmodel.TurmaUiState,
+    uiState: TurmaUiState,
     onVoltar: () -> Unit,
     onEntrar: (String) -> Unit
 ) {
@@ -348,7 +485,7 @@ private fun TelaEntrarTurma(
 
 @Composable
 private fun TelaDetalhesTurma(
-    uiState: playfoo.com.viewmodel.TurmaUiState,
+    uiState: TurmaUiState,
     onVoltar: () -> Unit
 ) {
     Column(
