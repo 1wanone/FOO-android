@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
@@ -282,6 +284,15 @@ private fun ConteudoPerfil(
             Spacer(Modifier.height(12.dp))
 
             if (uiState.turmaId != null) {
+                if (uiState.nomeTurma.isNotBlank()) {
+                    Text(
+                        text = uiState.nomeTurma,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -297,7 +308,7 @@ private fun ConteudoPerfil(
                         shape = MaterialTheme.shapes.small
                     ) {
                         Text(
-                            text = uiState.turmaId,
+                            text = uiState.codigoTurma.ifBlank { uiState.turmaId ?: "" },
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelLarge,
                             color = Color(0xFFAFA8FF),
@@ -419,6 +430,136 @@ private fun ConteudoPerfil(
                         Text("$erros erros", color = Color(0xFFE53935), style = MaterialTheme.typography.bodySmall)
                     }
                 }
+            }
+        }
+
+        // Gráficos individuais por tema
+        if (uiState.estatisticasPorTema.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+
+            CardCartoon(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "📊 Desempenho por Tema",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                AndroidView(
+                    factory = { context ->
+                        com.github.mikephil.charting.charts.BarChart(context).apply {
+                            description.isEnabled = false
+                            legend.apply {
+                                isEnabled = true
+                                textColor = android.graphics.Color.WHITE
+                            }
+                            axisRight.isEnabled = false
+                            axisLeft.apply {
+                                textColor = android.graphics.Color.WHITE
+                                axisMinimum = 0f
+                                gridColor = android.graphics.Color.argb(50, 255, 255, 255)
+                            }
+                            xAxis.apply {
+                                textColor = android.graphics.Color.WHITE
+                                granularity = 1f
+                                setDrawGridLines(false)
+                                position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
+                                labelRotationAngle = -30f
+                            }
+                            setTouchEnabled(false)
+                        }
+                    },
+                    update = { chart ->
+                        val labels = uiState.estatisticasPorTema.map {
+                            it["tema"].toString().take(6)
+                        }
+                        val entriesVitorias = uiState.estatisticasPorTema.mapIndexed { i, d ->
+                            com.github.mikephil.charting.data.BarEntry(
+                                i.toFloat(),
+                                (d["vitorias"] as? Int)?.toFloat() ?: 0f
+                            )
+                        }
+                        val entriesDerrotas = uiState.estatisticasPorTema.mapIndexed { i, d ->
+                            com.github.mikephil.charting.data.BarEntry(
+                                i.toFloat(),
+                                (d["derrotas"] as? Int)?.toFloat() ?: 0f
+                            )
+                        }
+                        val setVitorias = com.github.mikephil.charting.data.BarDataSet(entriesVitorias, "Vitórias").apply {
+                            color = Color(0xFF4CAF50).toArgb()
+                            valueTextColor = android.graphics.Color.WHITE
+                            valueTextSize = 9f
+                        }
+                        val setDerrotas = com.github.mikephil.charting.data.BarDataSet(entriesDerrotas, "Derrotas").apply {
+                            color = Color(0xFFE53935).toArgb()
+                            valueTextColor = android.graphics.Color.WHITE
+                            valueTextSize = 9f
+                        }
+                        chart.xAxis.valueFormatter =
+                            com.github.mikephil.charting.formatter.IndexAxisValueFormatter(labels.toTypedArray())
+                        val barData = com.github.mikephil.charting.data.BarData(setVitorias, setDerrotas).apply {
+                            barWidth = 0.35f
+                        }
+                        chart.data = barData
+                        chart.groupBars(0f, 0.1f, 0.05f)
+                        chart.invalidate()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            CardCartoon(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "🎯 Temas Jogados",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                AndroidView(
+                    factory = { context ->
+                        com.github.mikephil.charting.charts.PieChart(context).apply {
+                            description.isEnabled = false
+                            isDrawHoleEnabled = true
+                            holeRadius = 40f
+                            setHoleColor(android.graphics.Color.TRANSPARENT)
+                            legend.apply {
+                                isEnabled = true
+                                textColor = android.graphics.Color.WHITE
+                                textSize = 10f
+                            }
+                            setEntryLabelColor(android.graphics.Color.WHITE)
+                            setEntryLabelTextSize(10f)
+                        }
+                    },
+                    update = { chart ->
+                        val cores = listOf(
+                            Color(0xFF6C63FF), Color(0xFF4CAF50), Color(0xFFFF9800),
+                            Color(0xFFE53935), Color(0xFF00BCD4), Color(0xFFFF4081),
+                            Color(0xFFFFEB3B), Color(0xFF9C27B0), Color(0xFF607D8B)
+                        )
+                        val entries = uiState.estatisticasPorTema.map { d ->
+                            com.github.mikephil.charting.data.PieEntry(
+                                (d["total"] as? Int)?.toFloat() ?: 0f,
+                                d["tema"].toString().take(8)
+                            )
+                        }
+                        val dataSet = com.github.mikephil.charting.data.PieDataSet(entries, "").apply {
+                            colors = cores.map { it.toArgb() }
+                            valueTextColor = android.graphics.Color.WHITE
+                            valueTextSize = 11f
+                        }
+                        chart.data = com.github.mikephil.charting.data.PieData(dataSet)
+                        chart.invalidate()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                )
             }
         }
 

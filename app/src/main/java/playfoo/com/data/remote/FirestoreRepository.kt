@@ -169,6 +169,28 @@ class FirestoreRepository @Inject constructor() {
         Result.failure(e)
     }
 
+    suspend fun getEstatisticasPorTemaAluno(jogadorId: String): Result<List<Map<String, Any>>> = try {
+        val snapshot = partidas
+            .whereEqualTo("jogadorId", jogadorId)
+            .get()
+            .await()
+        val porTema = snapshot.documents
+            .groupBy { it.getString("tema") ?: "" }
+            .filterKeys { it.isNotBlank() }
+            .map { (tema, docs) ->
+                val vitorias = docs.count { it.getBoolean("venceu") == true }
+                mapOf(
+                    "tema" to tema,
+                    "total" to docs.size,
+                    "vitorias" to vitorias,
+                    "derrotas" to (docs.size - vitorias)
+                )
+            }
+        Result.success(porTema)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
     // Estatísticas pessoais do aluno
     suspend fun getEstatisticasAluno(jogadorId: String): Result<Map<String, Any>> = try {
         val snapshot = partidas

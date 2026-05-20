@@ -2,6 +2,7 @@ package playfoo.com.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,12 +23,15 @@ data class PerfilUiState(
     val tipoUsuario: String = TipoUsuario.ALUNO,
     val avatarConfig: AvatarConfig = AvatarConfig(),
     val turmaId: String? = null,
+    val nomeTurma: String = "",
+    val codigoTurma: String = "",
     val totalPartidas: Int = 0,
     val totalVitorias: Int = 0,
     val totalDerrotas: Int = 0,
     val taxaVitoria: Float = 0f,
     val temaFavorito: String = "",
     val palavrasErradas: Map<String, Int> = emptyMap(),
+    val estatisticasPorTema: List<Map<String, Any>> = emptyList(),
     val nivel: String = "INICIANTE",
     val modoEdicao: Boolean = false,
     val usuarioLogado: AuthUser? = null
@@ -40,6 +44,7 @@ class PerfilViewModel @Inject constructor(
     private val avatarPrefs: AvatarPreferences
 ) : ViewModel() {
 
+    private val auth = FirebaseAuth.getInstance()
     private val _uiState = MutableStateFlow(PerfilUiState(avatarConfig = avatarPrefs.load()))
     val uiState: StateFlow<PerfilUiState> = _uiState.asStateFlow()
 
@@ -91,6 +96,39 @@ class PerfilViewModel @Inject constructor(
                 .onFailure {
                     _uiState.value = _uiState.value.copy(carregando = false)
                 }
+
+            firestoreRepository.getEstatisticasPorTemaAluno(usuario.id)
+                .onSuccess { lista ->
+                    _uiState.value = _uiState.value.copy(estatisticasPorTema = lista)
+                }
+
+            carregarTurma()
+        }
+    }
+
+    private fun carregarTurma() {
+        val userId = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            if (_uiState.value.tipoUsuario == TipoUsuario.GESTOR) {
+                firestoreRepository.getTurmasDoGestor(userId)
+                    .onSuccess { turmas ->
+                        val primeiraTurma = turmas.firstOrNull()
+                        _uiState.value = _uiState.value.copy(
+                            turmaId     = primeiraTurma?.get("id")?.toString(),
+                            nomeTurma   = primeiraTurma?.get("nome")?.toString() ?: "",
+                            codigoTurma = primeiraTurma?.get("codigo")?.toString() ?: ""
+                        )
+                    }
+            } else {
+                firestoreRepository.getTurmaDoAluno(userId)
+                    .onSuccess { turma ->
+                        _uiState.value = _uiState.value.copy(
+                            turmaId     = turma?.get("id")?.toString(),
+                            nomeTurma   = turma?.get("nome")?.toString() ?: "",
+                            codigoTurma = turma?.get("codigo")?.toString() ?: ""
+                        )
+                    }
+            }
         }
     }
 
