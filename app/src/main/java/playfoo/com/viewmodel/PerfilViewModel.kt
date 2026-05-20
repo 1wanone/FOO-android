@@ -1,5 +1,6 @@
 package playfoo.com.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
@@ -66,6 +67,7 @@ class PerfilViewModel @Inject constructor(
             firestoreRepository.getUsuario(usuario.id)
                 .onSuccess { data ->
                     val tipo = data["tipo"]?.toString() ?: TipoUsuario.ALUNO
+                    Log.d("DEBUG_TIPO", "tipo lido do Firestore: $tipo")
                     _uiState.value = _uiState.value.copy(
                         tipoUsuario   = tipo,
                         usuarioLogado = usuario.copy(tipo = tipo)
@@ -105,20 +107,18 @@ class PerfilViewModel @Inject constructor(
         }
     }
 
-    private fun carregarTurma() {
+    private suspend fun carregarTurma() {
         val userId = auth.currentUser?.uid ?: return
-        viewModelScope.launch {
-            if (_uiState.value.tipoUsuario == TipoUsuario.GESTOR) {
-                firestoreRepository.getTurmasDoGestor(userId)
-                    .onSuccess { turmas ->
-                        _uiState.value = _uiState.value.copy(turmasDoGestor = turmas)
-                    }
-            } else {
-                firestoreRepository.getTurmaDoAluno(userId)
-                    .onSuccess { turma ->
-                        _uiState.value = _uiState.value.copy(turmaAluno = turma)
-                    }
-            }
+        if (_uiState.value.tipoUsuario == TipoUsuario.GESTOR) {
+            firestoreRepository.getTurmasDoGestor(userId)
+                .onSuccess { turmas ->
+                    _uiState.value = _uiState.value.copy(turmasDoGestor = turmas)
+                }
+        } else {
+            firestoreRepository.getTurmaDoAluno(userId)
+                .onSuccess { turma ->
+                    _uiState.value = _uiState.value.copy(turmaAluno = turma)
+                }
         }
     }
 

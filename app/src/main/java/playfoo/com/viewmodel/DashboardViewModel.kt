@@ -3,11 +3,13 @@ package playfoo.com.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import playfoo.com.data.remote.FirestoreRepository
 import playfoo.com.domain.TipoUsuario
 import javax.inject.Inject
@@ -47,6 +49,7 @@ class DashboardViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val auth = FirebaseAuth.getInstance()
+    private val db = FirebaseFirestore.getInstance()
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
@@ -76,22 +79,39 @@ class DashboardViewModel @Inject constructor(
                 }
             }
 
-            firestoreRepository.getPartidasTurma(turmaId)
-                .onSuccess { partidas ->
-                    val tipoAtual = _uiState.value.tipoUsuario
-                    val stats = processarEstatisticas(partidas)
-                    _uiState.value = stats.copy(
-                        carregando = false,
-                        turmaId = turmaId,
-                        tipoUsuario = tipoAtual
-                    )
+            try {
+                // Buscar dados da turma para obter membros e nome
+                val turmaDoc = db.collection("turmas").document(turmaId).get().await()
+                val membros = (turmaDoc.data?.get("membros") as? List<*>)
+                    ?.filterIsInstance<String>() ?: emptyList()
+                val nomeTurma = turmaDoc.data?.get("nome")?.toString() ?: ""
+
+                // Tentar buscar partidas pelo turmaId primeiro
+                val todasPartidas = mutableListOf<Map<String, Any>>()
+                firestoreRepository.getPartidasTurma(turmaId)
+                    .onSuccess { p -> todasPartidas.addAll(p) }
+
+                // Fallback: buscar por membros (pega partidas antigas sem turmaId)
+                if (todasPartidas.isEmpty() && membros.isNotEmpty()) {
+                    firestoreRepository.getPartidasDosMembros(membros)
+                        .onSuccess { p -> todasPartidas.addAll(p) }
                 }
-                .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(
-                        carregando = false,
-                        erro = e.message ?: "Erro ao carregar dados"
-                    )
-                }
+
+                val tipoAtual = _uiState.value.tipoUsuario
+                val stats = processarEstatisticas(todasPartidas)
+                _uiState.value = stats.copy(
+                    carregando = false,
+                    turmaId = turmaId,
+                    nomeTurma = nomeTurma,
+                    totalAlunos = membros.size,
+                    tipoUsuario = tipoAtual
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    carregando = false,
+                    erro = e.message ?: "Erro ao carregar dados"
+                )
+            }
         }
     }
 

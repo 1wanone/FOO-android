@@ -161,53 +161,9 @@ fun DashboardScreen(
                         )
                         Spacer(Modifier.height(8.dp))
                         GraficoBarras(
-                            labels = uiState.estatisticasPorTema.map { it.nome.take(8) },
+                            labels = uiState.estatisticasPorTema.map { e -> if (e.nome.length > 5) e.nome.take(5) + "." else e.nome },
                             valores = uiState.estatisticasPorTema.map { it.taxaVitoria }
                         )
-                    }
-                }
-
-                // Palavras mais difíceis
-                if (uiState.palavrasMaisDificeis.isNotEmpty()) {
-                    CardCartoon(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = "💀 Palavras Mais Difíceis",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        uiState.palavrasMaisDificeis.take(5).forEachIndexed { index, palavra ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "${index + 1}. ${palavra.palavra}",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "${palavra.totalErros} erros",
-                                    color = Color(0xFFE53935)
-                                )
-                            }
-                            LinearProgressIndicator(
-                                progress = {
-                                    palavra.totalErros.toFloat() /
-                                        (uiState.palavrasMaisDificeis.firstOrNull()
-                                            ?.totalErros?.toFloat()?.coerceAtLeast(1f) ?: 1f)
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp),
-                                color = Color(0xFFE53935),
-                                trackColor = Color.White.copy(alpha = 0.2f)
-                            )
-                        }
                     }
                 }
 
@@ -346,7 +302,9 @@ private fun GraficoBarras(labels: List<String>, valores: List<Float>) {
                     granularity = 1f
                     setDrawGridLines(false)
                     position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
+                    labelRotationAngle = -45f
                 }
+                setExtraBottomOffset(20f)
                 setTouchEnabled(false)
             }
         },
@@ -356,6 +314,9 @@ private fun GraficoBarras(labels: List<String>, valores: List<Float>) {
                 color = Color(0xFF6C63FF).toArgb()
                 valueTextColor = android.graphics.Color.WHITE
                 valueTextSize = 10f
+                valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                    override fun getFormattedValue(value: Float) = value.toInt().toString()
+                }
             }
             chart.xAxis.valueFormatter = IndexAxisValueFormatter(labels.toTypedArray())
             chart.data = BarData(dataSet)
@@ -363,7 +324,7 @@ private fun GraficoBarras(labels: List<String>, valores: List<Float>) {
         },
         modifier = Modifier
             .fillMaxWidth()
-            .height(220.dp)
+            .height(260.dp)
     )
 }
 

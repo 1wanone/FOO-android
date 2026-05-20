@@ -7,9 +7,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,11 +28,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Group
 import playfoo.com.domain.TipoUsuario
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -201,85 +200,6 @@ private fun ConteudoPerfil(
         )
 
         Spacer(Modifier.height(24.dp))
-
-        // Estatísticas básicas
-        CardCartoon(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Estatísticas",
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(Modifier.height(14.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Nível",
-                    color = Color.White.copy(alpha = 0.7f),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Surface(color = corNivel(uiState.nivel), shape = MaterialTheme.shapes.small) {
-                    Text(
-                        text = uiState.nivel,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-            Spacer(Modifier.height(12.dp))
-
-            if (uiState.carregando) {
-                CircularProgressIndicator(
-                    color = Color(0xFF6C63FF),
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
-            } else {
-                LinhaEstatistica("Partidas jogadas", "${uiState.totalPartidas}", Color.White)
-                Spacer(Modifier.height(8.dp))
-                LinhaEstatistica("Vitórias", "${uiState.totalVitorias}", Color(0xFF66BB6A))
-                Spacer(Modifier.height(8.dp))
-                LinhaEstatistica("Derrotas", "${uiState.totalDerrotas}", Color(0xFFEF5350))
-
-                Spacer(Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Taxa de vitória",
-                        color = Color.White.copy(alpha = 0.7f),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "%.0f%%".format(uiState.taxaVitoria),
-                        color = Color(0xFF66BB6A),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Spacer(Modifier.height(6.dp))
-                LinearProgressIndicator(
-                    progress   = { uiState.taxaVitoria / 100f },
-                    modifier   = Modifier.fillMaxWidth(),
-                    color      = Color(0xFF66BB6A),
-                    trackColor = Color.White.copy(alpha = 0.15f)
-                )
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
 
         // Turma — diferenciado por tipo de usuário
         if (uiState.tipoUsuario == TipoUsuario.GESTOR) {
@@ -509,16 +429,31 @@ private fun ConteudoPerfil(
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.bodySmall
                 )
-                Spacer(Modifier.height(4.dp))
-                uiState.palavrasErradas.entries.forEach { (palavra, erros) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 2.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(palavra, color = Color.White, style = MaterialTheme.typography.bodySmall)
-                        Text("$erros erros", color = Color(0xFFE53935), style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+                val maxErros = uiState.palavrasErradas.values.maxOrNull()?.toFloat() ?: 1f
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    uiState.palavrasErradas.entries.forEach { (palavra, erros) ->
+                        val chipAlpha = 0.5f + (erros.toFloat() / maxErros * 0.5f)
+                        val chipSize = (12 + (erros.toFloat() / maxErros * 10).toInt()).sp
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    Color(0xFFE53935).copy(alpha = chipAlpha),
+                                    androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
+                                )
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = palavra,
+                                color = Color.White,
+                                fontSize = chipSize,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
@@ -555,14 +490,15 @@ private fun ConteudoPerfil(
                                 granularity = 1f
                                 setDrawGridLines(false)
                                 position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
-                                labelRotationAngle = -30f
+                                labelRotationAngle = -45f
                             }
+                            setExtraBottomOffset(20f)
                             setTouchEnabled(false)
                         }
                     },
                     update = { chart ->
                         val labels = uiState.estatisticasPorTema.map {
-                            it["tema"].toString().take(6)
+                            it["tema"].toString().let { n -> if (n.length > 5) n.take(5) + "." else n }
                         }
                         val entriesVitorias = uiState.estatisticasPorTema.mapIndexed { i, d ->
                             com.github.mikephil.charting.data.BarEntry(
@@ -576,15 +512,20 @@ private fun ConteudoPerfil(
                                 (d["derrotas"] as? Int)?.toFloat() ?: 0f
                             )
                         }
+                        val intFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                            override fun getFormattedValue(value: Float) = value.toInt().toString()
+                        }
                         val setVitorias = com.github.mikephil.charting.data.BarDataSet(entriesVitorias, "Vitórias").apply {
                             color = Color(0xFF4CAF50).toArgb()
                             valueTextColor = android.graphics.Color.WHITE
                             valueTextSize = 9f
+                            valueFormatter = intFormatter
                         }
                         val setDerrotas = com.github.mikephil.charting.data.BarDataSet(entriesDerrotas, "Derrotas").apply {
                             color = Color(0xFFE53935).toArgb()
                             valueTextColor = android.graphics.Color.WHITE
                             valueTextSize = 9f
+                            valueFormatter = intFormatter
                         }
                         chart.xAxis.valueFormatter =
                             com.github.mikephil.charting.formatter.IndexAxisValueFormatter(labels.toTypedArray())
@@ -597,7 +538,7 @@ private fun ConteudoPerfil(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp)
+                        .height(260.dp)
                 )
             }
 

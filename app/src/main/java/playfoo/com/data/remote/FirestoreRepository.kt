@@ -47,7 +47,6 @@ class FirestoreRepository @Inject constructor() {
     suspend fun getPartidasJogador(jogadorId: String): Result<List<Map<String, Any>>> = try {
         val snapshot = partidas
             .whereEqualTo("jogadorId", jogadorId)
-            .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .get()
             .await()
         Result.success(snapshot.documents.mapNotNull { it.data })
@@ -57,14 +56,34 @@ class FirestoreRepository @Inject constructor() {
 
     // Buscar partidas da turma (para dashboard do gestor)
     suspend fun getPartidasTurma(turmaId: String): Result<List<Map<String, Any>>> = try {
+        android.util.Log.d("DASHBOARD", "Buscando partidas da turma: $turmaId")
         val snapshot = partidas
             .whereEqualTo("turmaId", turmaId)
-            .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .get()
             .await()
+        android.util.Log.d("DASHBOARD", "Partidas encontradas: ${snapshot.size()}")
         Result.success(snapshot.documents.mapNotNull { it.data })
     } catch (e: Exception) {
+        android.util.Log.e("DASHBOARD", "Erro: ${e.message}")
         Result.failure(e)
+    }
+
+    // Buscar partidas de todos os membros (fallback para partidas sem turmaId)
+    suspend fun getPartidasDosMembros(membros: List<String>): Result<List<Map<String, Any>>> {
+        if (membros.isEmpty()) return Result.success(emptyList())
+        return try {
+            val todasPartidas = mutableListOf<Map<String, Any>>()
+            membros.chunked(10).forEach { chunk ->
+                val snapshot = partidas
+                    .whereIn("jogadorId", chunk)
+                    .get()
+                    .await()
+                todasPartidas.addAll(snapshot.documents.mapNotNull { it.data })
+            }
+            Result.success(todasPartidas)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     // Criar turma
@@ -142,21 +161,26 @@ class FirestoreRepository @Inject constructor() {
             .whereEqualTo("gestorId", gestorId)
             .get()
             .await()
-        Result.success(snapshot.documents.mapNotNull {
-            it.data?.plus("id" to it.id)
+        Result.success(snapshot.documents.mapNotNull { doc ->
+            android.util.Log.d("TURMA", "membros: ${doc.data?.get("membros")}")
+            doc.data?.plus("id" to doc.id)
         })
     } catch (e: Exception) {
         Result.failure(e)
     }
 
     suspend fun getTurmaDoAluno(jogadorId: String): Result<Map<String, Any>?> = try {
+        android.util.Log.d("FIRESTORE", "Buscando turma do aluno: $jogadorId")
         val snapshot = turmas
             .whereArrayContains("membros", jogadorId)
             .get()
             .await()
         val turma = snapshot.documents.firstOrNull()
-        Result.success(turma?.data?.plus("id" to turma.id))
+        val result = turma?.data?.plus("id" to turma.id)
+        android.util.Log.d("FIRESTORE", "Turma encontrada: ${result?.get("nome")}, id: ${result?.get("id")}")
+        Result.success(result)
     } catch (e: Exception) {
+        android.util.Log.e("FIRESTORE", "Erro ao buscar turma do aluno: ${e.message}")
         Result.failure(e)
     }
 

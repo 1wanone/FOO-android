@@ -25,6 +25,7 @@ data class GameUiState(
     val letrasErradas: Set<Char> = emptySet(),
     val estadoAvatar: String = "NEUTRO",
     val tema: String = "",
+    val palavra: String = "",
     val dificuldade: Dificuldade = Dificuldade.NORMAL,
     val resultado: ResultadoJogo = ResultadoJogo.EM_ANDAMENTO,
     val timerSegundos: Int? = null
@@ -96,6 +97,7 @@ class GameViewModel @Inject constructor(
             tentativasRestantes = partida.dificuldade.tentativasMaximas,
             tentativasMaximas   = partida.dificuldade.tentativasMaximas,
             tema                = partida.tema.nome,
+            palavra             = partida.palavra.texto,
             dificuldade         = partida.dificuldade,
             timerSegundos       = dificuldade.tempoSegundos
         )
@@ -133,22 +135,7 @@ class GameViewModel @Inject constructor(
             timerJob?.cancel()
             if (resultado == ResultadoJogo.VITORIA) jogadorPrefs.registrarVitoria()
             else jogadorPrefs.registrarDerrota()
-            val uid = FirebaseAuth.getInstance().currentUser?.uid
-            if (uid != null) {
-                val tempoDecorrido = ((System.currentTimeMillis() - tempoInicioPartida) / 1000).toInt()
-                val tentativasUsadas = partida.dificuldade.tentativasMaximas - partida.getTentativasRestantes()
-                viewModelScope.launch {
-                    firestoreRepository.salvarPartida(
-                        jogadorId        = uid,
-                        tema             = partida.tema.nome,
-                        palavra          = partida.palavra.texto,
-                        dificuldade      = partida.dificuldade.name,
-                        venceu           = resultado == ResultadoJogo.VITORIA,
-                        tentativasUsadas = tentativasUsadas,
-                        tempoSegundos    = tempoDecorrido
-                    )
-                }
-            }
+            salvarPartidaFirestore(resultado == ResultadoJogo.VITORIA)
         }
         val avatarFinal = when (resultado) {
             ResultadoJogo.VITORIA      -> "VITORIA"
@@ -167,5 +154,31 @@ class GameViewModel @Inject constructor(
             dificuldade         = partida.dificuldade,
             resultado           = resultado
         )
+    }
+
+    private fun salvarPartidaFirestore(venceu: Boolean) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val state = _uiState.value
+        viewModelScope.launch {
+            val turmaId = try {
+                firestoreRepository.getTurmaDoAluno(userId)
+                    .getOrNull()
+                    ?.get("id")
+                    ?.toString()
+            } catch (e: Exception) {
+                null
+            }
+            android.util.Log.d("GAME", "Salvando partida - jogadorId: $userId, turmaId: $turmaId")
+            firestoreRepository.salvarPartida(
+                jogadorId        = userId,
+                tema             = state.tema,
+                palavra          = state.palavra,
+                dificuldade      = state.dificuldade.name,
+                venceu           = venceu,
+                tentativasUsadas = state.dificuldade.tentativasMaximas - state.tentativasRestantes,
+                tempoSegundos    = 0,
+                turmaId          = turmaId
+            )
+        }
     }
 }

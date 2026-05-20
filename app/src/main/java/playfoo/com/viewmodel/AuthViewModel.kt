@@ -67,6 +67,7 @@ class AuthViewModel @Inject constructor(
 
         val tipo = if (codigoProfessor.trim().uppercase() == TipoUsuario.CODIGO_PROFESSOR)
             TipoUsuario.GESTOR else TipoUsuario.ALUNO
+        android.util.Log.d("DEBUG_TIPO", "tipo salvo no registro: $tipo")
 
         viewModelScope.launch {
             _state.value = AuthUiState.Carregando
