@@ -22,9 +22,8 @@ data class PerfilUiState(
     val emailUsuario: String = "",
     val tipoUsuario: String = TipoUsuario.ALUNO,
     val avatarConfig: AvatarConfig = AvatarConfig(),
-    val turmaId: String? = null,
-    val nomeTurma: String = "",
-    val codigoTurma: String = "",
+    val turmasDoGestor: List<Map<String, Any>> = emptyList(),
+    val turmaAluno: Map<String, Any>? = null,
     val totalPartidas: Int = 0,
     val totalVitorias: Int = 0,
     val totalDerrotas: Int = 0,
@@ -112,21 +111,12 @@ class PerfilViewModel @Inject constructor(
             if (_uiState.value.tipoUsuario == TipoUsuario.GESTOR) {
                 firestoreRepository.getTurmasDoGestor(userId)
                     .onSuccess { turmas ->
-                        val primeiraTurma = turmas.firstOrNull()
-                        _uiState.value = _uiState.value.copy(
-                            turmaId     = primeiraTurma?.get("id")?.toString(),
-                            nomeTurma   = primeiraTurma?.get("nome")?.toString() ?: "",
-                            codigoTurma = primeiraTurma?.get("codigo")?.toString() ?: ""
-                        )
+                        _uiState.value = _uiState.value.copy(turmasDoGestor = turmas)
                     }
             } else {
                 firestoreRepository.getTurmaDoAluno(userId)
                     .onSuccess { turma ->
-                        _uiState.value = _uiState.value.copy(
-                            turmaId     = turma?.get("id")?.toString(),
-                            nomeTurma   = turma?.get("nome")?.toString() ?: "",
-                            codigoTurma = turma?.get("codigo")?.toString() ?: ""
-                        )
+                        _uiState.value = _uiState.value.copy(turmaAluno = turma)
                     }
             }
         }

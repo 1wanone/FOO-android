@@ -70,7 +70,13 @@ fun ForcaNavHost() {
             val turmaId = backStackEntry.arguments?.getString("turmaId") ?: "demo"
             DashboardScreen(turmaId = turmaId, onVoltar = { navController.navigateUp() })
         }
-        composable("perfil") { PerfilScreen(navController) }
+        composable("perfil") {
+            PerfilScreen(
+                navController     = navController,
+                onGerenciarTurmas = { navController.navigate("turmas") },
+                onVerDashboard    = { turmaId -> navController.navigate("dashboard/$turmaId") }
+            )
+        }
         composable("login") { LoginScreen(navController) }
     }
 }

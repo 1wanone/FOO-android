@@ -23,6 +23,9 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Group
+import playfoo.com.domain.TipoUsuario
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -62,6 +65,8 @@ private enum class TelaPerfil { PERFIL, EDITOR_AVATAR }
 @Composable
 fun PerfilScreen(
     navController: NavController,
+    onGerenciarTurmas: () -> Unit = {},
+    onVerDashboard: (turmaId: String) -> Unit = {},
     viewModel: PerfilViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -96,18 +101,20 @@ fun PerfilScreen(
             when (tela) {
                 TelaPerfil.PERFIL ->
                     ConteudoPerfil(
-                        uiState        = uiState,
-                        onPersonalizar = { viewModel.abrirEditor() },
-                        onLogout       = {
+                        uiState            = uiState,
+                        onPersonalizar     = { viewModel.abrirEditor() },
+                        onLogout           = {
                             viewModel.logout()
                             navController.navigate("login") {
                                 popUpTo(0) { inclusive = true }
                                 launchSingleTop = true
                             }
                         },
-                        onFazerLogin   = { navController.navigate("login") },
-                        onEntrarTurma  = { navController.navigate("turmas") },
-                        onVoltar       = { navController.navigateUp() }
+                        onFazerLogin       = { navController.navigate("login") },
+                        onEntrarTurma      = { navController.navigate("turmas") },
+                        onVoltar           = { navController.navigateUp() },
+                        onGerenciarTurmas  = onGerenciarTurmas,
+                        onVerDashboard     = onVerDashboard
                     )
                 TelaPerfil.EDITOR_AVATAR ->
                     ConteudoEditorAvatar(
@@ -127,7 +134,9 @@ private fun ConteudoPerfil(
     onLogout: () -> Unit,
     onFazerLogin: () -> Unit,
     onEntrarTurma: () -> Unit,
-    onVoltar: () -> Unit
+    onVoltar: () -> Unit,
+    onGerenciarTurmas: () -> Unit,
+    onVerDashboard: (String) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -272,64 +281,146 @@ private fun ConteudoPerfil(
 
         Spacer(Modifier.height(16.dp))
 
-        // Turma
-        CardCartoon(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Turma",
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            if (uiState.turmaId != null) {
-                if (uiState.nomeTurma.isNotBlank()) {
-                    Text(
-                        text = uiState.nomeTurma,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Spacer(Modifier.height(8.dp))
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Código",
-                        color = Color.White.copy(alpha = 0.7f),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Surface(
-                        color = Color(0xFF6C63FF).copy(alpha = 0.25f),
-                        shape = MaterialTheme.shapes.small
+        // Turma — diferenciado por tipo de usuário
+        if (uiState.tipoUsuario == TipoUsuario.GESTOR) {
+            CardCartoon(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = uiState.codigoTurma.ifBlank { uiState.turmaId ?: "" },
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = Color(0xFFAFA8FF),
-                            fontWeight = FontWeight.Bold
+                            text = "🏫 Minhas Turmas (${uiState.turmasDoGestor.size})",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
                         )
+                        IconButton(onClick = onGerenciarTurmas) {
+                            Icon(
+                                Icons.Default.Group,
+                                contentDescription = "Gerenciar turmas",
+                                tint = Color(0xFF6C63FF)
+                            )
+                        }
+                    }
+
+                    if (uiState.turmasDoGestor.isEmpty()) {
+                        Text(
+                            text = "Nenhuma turma criada ainda",
+                            color = Color.White.copy(alpha = 0.6f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        BotaoCartoon(
+                            texto    = "+ Criar turma",
+                            onClick  = onGerenciarTurmas,
+                            tipo     = BotaoCartoonTipo.SECUNDARIO,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        uiState.turmasDoGestor.forEach { turma ->
+                            CardCartoon(
+                                modifier  = Modifier.fillMaxWidth(),
+                                corBorda  = Color(0xFF6C63FF),
+                                padding   = 12.dp
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = turma["nome"].toString(),
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        Text(
+                                            text = "Código: ${turma["codigo"]}",
+                                            color = Color(0xFF6C63FF),
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                        val membros = (turma["membros"] as? List<*>)?.size ?: 0
+                                        Text(
+                                            text = "$membros aluno(s)",
+                                            color = Color.White.copy(alpha = 0.6f),
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                    IconButton(onClick = { onVerDashboard(turma["id"].toString()) }) {
+                                        Icon(
+                                            Icons.Default.BarChart,
+                                            contentDescription = "Ver dashboard",
+                                            tint = Color(0xFFFF9800)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-            } else {
+            }
+        } else {
+            CardCartoon(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Você não está em nenhuma turma.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.6f)
+                    text = "Turma",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(12.dp))
-                BotaoCartoon(
-                    texto    = "Entrar em uma turma",
-                    onClick  = onEntrarTurma,
-                    tipo     = BotaoCartoonTipo.SECUNDARIO,
-                    modifier = Modifier.fillMaxWidth(),
-                    fontSize = 14.sp
-                )
+                if (uiState.turmaAluno != null) {
+                    val turma = uiState.turmaAluno
+                    val nome = turma["nome"]?.toString() ?: ""
+                    if (nome.isNotBlank()) {
+                        Text(
+                            text = nome,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Código",
+                            color = Color.White.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Surface(
+                            color = Color(0xFF6C63FF).copy(alpha = 0.25f),
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Text(
+                                text = turma["codigo"]?.toString() ?: "",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color(0xFFAFA8FF),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "Você não está em nenhuma turma.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.6f)
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    BotaoCartoon(
+                        texto    = "Entrar em uma turma",
+                        onClick  = onEntrarTurma,
+                        tipo     = BotaoCartoonTipo.SECUNDARIO,
+                        modifier = Modifier.fillMaxWidth(),
+                        fontSize = 14.sp
+                    )
+                }
             }
         }
 
