@@ -1,188 +1,374 @@
 package playfoo.com.ui.dashboard
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.navigation.NavController
-import playfoo.com.domain.NivelAluno
+import com.github.mikephil.charting.charts.BarChart
+import com.github.mikephil.charting.charts.PieChart
+import com.github.mikephil.charting.components.Legend
+import com.github.mikephil.charting.data.*
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import playfoo.com.ui.components.CardCartoon
+import playfoo.com.ui.components.FundoTela
+import playfoo.com.ui.components.TipoFundo
 import playfoo.com.viewmodel.DashboardViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    navController: NavController,
+    turmaId: String = "demo",
+    onVoltar: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val jogador = uiState.jogador
 
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) viewModel.carregar()
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    LaunchedEffect(turmaId) {
+        viewModel.carregarDados(turmaId)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Dashboard") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
-                    }
-                }
-            )
-        }
-    ) { padding ->
+    FundoTela(tipo = TipoFundo.DASHBOARD) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Cartão do jogador
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(jogador.nome, style = MaterialTheme.typography.headlineSmall)
-                        Spacer(Modifier.height(4.dp))
-                        NivelBadge(jogador.calcularNivel())
-                    }
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onVoltar) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = Color.White)
+                }
+                Column {
                     Text(
-                        text = nivelEmoji(jogador.calcularNivel()),
-                        style = MaterialTheme.typography.displaySmall
+                        text = "Dashboard",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = uiState.nomeTurma,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.7f)
                     )
                 }
             }
 
-            // Stats: partidas, vitórias, derrotas
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                StatCard("Partidas", jogador.totalPartidas, Modifier.weight(1f))
-                StatCard("Vitórias", jogador.totalVitorias, Modifier.weight(1f))
-                StatCard("Derrotas", jogador.totalDerrotas, Modifier.weight(1f))
-            }
-
-            // Taxa de vitória
-            val taxa = jogador.calcularTaxaVitoria()
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            if (uiState.carregando) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Taxa de Vitória", style = MaterialTheme.typography.titleMedium)
+                    CircularProgressIndicator(color = Color(0xFFFF9800))
+                }
+            } else {
+
+                // Cards de resumo
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CardResumo(
+                        emoji = "🎮",
+                        valor = uiState.totalPartidas.toString(),
+                        label = "Partidas",
+                        cor = Color(0xFF6C63FF),
+                        modifier = Modifier.weight(1f)
+                    )
+                    CardResumo(
+                        emoji = "👥",
+                        valor = uiState.totalAlunos.toString(),
+                        label = "Alunos",
+                        cor = Color(0xFF4CAF50),
+                        modifier = Modifier.weight(1f)
+                    )
+                    CardResumo(
+                        emoji = "🏆",
+                        valor = "${uiState.taxaVitoriaGeral.toInt()}%",
+                        label = "Vitórias",
+                        cor = Color(0xFFFF9800),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                // Gráfico de pizza — partidas por tema
+                if (uiState.estatisticasPorTema.isNotEmpty()) {
+                    CardCartoon(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            "${taxa.toInt()}%",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.primary
+                            text = "📊 Partidas por Tema",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        GraficoPizza(
+                            dados = uiState.estatisticasPorTema.map {
+                                it.nome to it.totalPartidas.toFloat()
+                            }
                         )
                     }
-                    LinearProgressIndicator(
-                        progress = { taxa / 100f },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                }
+
+                // Gráfico de barras — taxa de vitória por tema
+                if (uiState.estatisticasPorTema.isNotEmpty()) {
+                    CardCartoon(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "✅ Taxa de Vitória por Tema",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        GraficoBarras(
+                            labels = uiState.estatisticasPorTema.map { it.nome.take(8) },
+                            valores = uiState.estatisticasPorTema.map { it.taxaVitoria }
+                        )
+                    }
+                }
+
+                // Palavras mais difíceis
+                if (uiState.palavrasMaisDificeis.isNotEmpty()) {
+                    CardCartoon(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "💀 Palavras Mais Difíceis",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        uiState.palavrasMaisDificeis.take(5).forEachIndexed { index, palavra ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${index + 1}. ${palavra.palavra}",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "${palavra.totalErros} erros",
+                                    color = Color(0xFFE53935)
+                                )
+                            }
+                            LinearProgressIndicator(
+                                progress = {
+                                    palavra.totalErros.toFloat() /
+                                        (uiState.palavrasMaisDificeis.firstOrNull()
+                                            ?.totalErros?.toFloat()?.coerceAtLeast(1f) ?: 1f)
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp),
+                                color = Color(0xFFE53935),
+                                trackColor = Color.White.copy(alpha = 0.2f)
+                            )
+                        }
+                    }
+                }
+
+                // Nuvem de palavras
+                if (uiState.palavrasMaisDificeis.isNotEmpty()) {
+                    CardCartoon(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "☁️ Nuvem de Palavras Difíceis",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        NuvemPalavras(palavras = uiState.palavrasMaisDificeis)
+                    }
+                }
+
+                // Mensagem sem dados
+                if (uiState.totalPartidas == 0) {
+                    CardCartoon(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(text = "📭", fontSize = 48.sp)
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = "Nenhuma partida ainda",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "Os dados aparecerão quando os alunos começarem a jogar",
+                                color = Color.White.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
                 }
             }
-
-            // Progresso de nível
-            NivelProgressCard(jogador.totalPartidas)
         }
     }
 }
 
 @Composable
-private fun StatCard(label: String, valor: Int, modifier: Modifier = Modifier) {
-    Card(modifier = modifier) {
-        Column(
-            modifier = Modifier.padding(12.dp).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = valor.toString(),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(label, style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-@Composable
-private fun NivelBadge(nivel: NivelAluno) {
-    val (label, cor) = when (nivel) {
-        NivelAluno.INICIANTE      -> "Iniciante" to MaterialTheme.colorScheme.secondary
-        NivelAluno.INTERMEDIARIO  -> "Intermediário" to MaterialTheme.colorScheme.tertiary
-        NivelAluno.AVANCADO       -> "Avançado" to MaterialTheme.colorScheme.primary
-        NivelAluno.EXPERT         -> "Expert" to MaterialTheme.colorScheme.error
-    }
-    Surface(
-        color = cor.copy(alpha = 0.15f),
-        shape = MaterialTheme.shapes.small
+private fun CardResumo(
+    emoji: String,
+    valor: String,
+    label: String,
+    cor: Color,
+    modifier: Modifier = Modifier
+) {
+    CardCartoon(
+        modifier = modifier,
+        corBorda = cor,
+        padding = 12.dp
     ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = cor
-        )
-    }
-}
-
-@Composable
-private fun NivelProgressCard(totalPartidas: Int) {
-    val (proximoNivel, progresso, meta) = when {
-        totalPartidas < 10  -> Triple("Intermediário", totalPartidas, 10)
-        totalPartidas < 50  -> Triple("Avançado", totalPartidas - 10, 40)
-        else                -> Triple("Expert", totalPartidas, totalPartidas)
-    }
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text("Progresso de Nível", style = MaterialTheme.typography.titleMedium)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("$progresso / $meta partidas", style = MaterialTheme.typography.bodySmall)
-                Text("Próximo: $proximoNivel", style = MaterialTheme.typography.bodySmall)
-            }
-            LinearProgressIndicator(
-                progress = { if (meta > 0) progresso.toFloat() / meta else 1f },
-                modifier = Modifier.fillMaxWidth()
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = emoji, fontSize = 24.sp)
+            Text(
+                text = valor,
+                color = cor,
+                fontWeight = FontWeight.Bold,
+                fontSize = 22.sp
+            )
+            Text(
+                text = label,
+                color = Color.White.copy(alpha = 0.7f),
+                fontSize = 11.sp
             )
         }
     }
 }
 
-private fun nivelEmoji(nivel: NivelAluno): String = when (nivel) {
-    NivelAluno.INICIANTE     -> "🌱"
-    NivelAluno.INTERMEDIARIO -> "📚"
-    NivelAluno.AVANCADO      -> "⭐"
-    NivelAluno.EXPERT        -> "🏆"
+@Composable
+private fun GraficoPizza(dados: List<Pair<String, Float>>) {
+    val cores = listOf(
+        Color(0xFF6C63FF), Color(0xFF4CAF50), Color(0xFFFF9800),
+        Color(0xFFE53935), Color(0xFF00BCD4), Color(0xFFFF4081),
+        Color(0xFFFFEB3B), Color(0xFF9C27B0), Color(0xFF607D8B)
+    )
+    AndroidView(
+        factory = { context ->
+            PieChart(context).apply {
+                description.isEnabled = false
+                isDrawHoleEnabled = true
+                holeRadius = 40f
+                setHoleColor(android.graphics.Color.TRANSPARENT)
+                legend.apply {
+                    isEnabled = true
+                    textColor = android.graphics.Color.WHITE
+                    textSize = 10f
+                    orientation = Legend.LegendOrientation.VERTICAL
+                    horizontalAlignment = Legend.LegendHorizontalAlignment.RIGHT
+                }
+                setEntryLabelColor(android.graphics.Color.WHITE)
+                setEntryLabelTextSize(10f)
+            }
+        },
+        update = { chart ->
+            val entries = dados.mapIndexed { _, (label, value) ->
+                PieEntry(value, if (label.length > 8) label.take(8) else label)
+            }
+            val dataSet = PieDataSet(entries, "").apply {
+                colors = cores.map { it.toArgb() }
+                valueTextColor = android.graphics.Color.WHITE
+                valueTextSize = 11f
+            }
+            chart.data = PieData(dataSet)
+            chart.invalidate()
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(250.dp)
+    )
+}
+
+@Composable
+private fun GraficoBarras(labels: List<String>, valores: List<Float>) {
+    AndroidView(
+        factory = { context ->
+            BarChart(context).apply {
+                description.isEnabled = false
+                legend.isEnabled = false
+                axisRight.isEnabled = false
+                axisLeft.apply {
+                    textColor = android.graphics.Color.WHITE
+                    axisMinimum = 0f
+                    axisMaximum = 100f
+                    gridColor = android.graphics.Color.argb(50, 255, 255, 255)
+                }
+                xAxis.apply {
+                    textColor = android.graphics.Color.WHITE
+                    granularity = 1f
+                    setDrawGridLines(false)
+                    position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
+                }
+                setTouchEnabled(false)
+            }
+        },
+        update = { chart ->
+            val entries = valores.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
+            val dataSet = BarDataSet(entries, "Taxa de Vitória %").apply {
+                color = Color(0xFF6C63FF).toArgb()
+                valueTextColor = android.graphics.Color.WHITE
+                valueTextSize = 10f
+            }
+            chart.xAxis.valueFormatter = IndexAxisValueFormatter(labels.toTypedArray())
+            chart.data = BarData(dataSet)
+            chart.invalidate()
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp)
+    )
+}
+
+@Composable
+private fun NuvemPalavras(palavras: List<playfoo.com.viewmodel.EstatisticaPalavra>) {
+    val maxErros = palavras.maxOfOrNull { it.totalErros }?.toFloat() ?: 1f
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        palavras.forEach { palavra ->
+            val tamanho = 12 + (palavra.totalErros.toFloat() / maxErros * 16).toInt()
+            val alpha = 0.5f + (palavra.totalErros.toFloat() / maxErros * 0.5f)
+            Box(
+                modifier = Modifier
+                    .background(
+                        Color(0xFFE53935).copy(alpha = alpha),
+                        androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
+                    )
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = palavra.palavra,
+                    color = Color.White,
+                    fontSize = tamanho.sp,
+                    fontWeight = if (tamanho > 20) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+        }
+    }
 }

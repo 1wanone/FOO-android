@@ -1,71 +1,103 @@
 package playfoo.com.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import playfoo.com.data.TurmaDataSource
-import playfoo.com.data.local.TurmaPreferences
-import playfoo.com.domain.Turma
+import kotlinx.coroutines.launch
+import playfoo.com.data.remote.FirestoreRepository
 import javax.inject.Inject
 
 data class TurmaUiState(
-    val turmasInscritas: List<Turma> = emptyList(),
-    val codigo: String = "",
+    val carregando: Boolean = false,
     val erro: String? = null,
-    val mensagem: String? = null
+    val sucesso: String? = null,
+    val turmaAtual: Map<String, Any>? = null,
+    val membros: List<Map<String, Any>> = emptyList(),
+    val partidas: List<Map<String, Any>> = emptyList(),
+    val telaTurma: TelaTurma = TelaTurma.INICIAL
 )
+
+enum class TelaTurma { INICIAL, CRIAR, ENTRAR, DETALHES }
 
 @HiltViewModel
 class TurmaViewModel @Inject constructor(
-    private val turmaPrefs: TurmaPreferences
+    private val firestoreRepository: FirestoreRepository
 ) : ViewModel() {
 
+    private val auth = FirebaseAuth.getInstance()
     private val _uiState = MutableStateFlow(TurmaUiState())
     val uiState: StateFlow<TurmaUiState> = _uiState.asStateFlow()
 
-    init {
-        carregar()
+    fun irPara(tela: TelaTurma) {
+        _uiState.value = _uiState.value.copy(
+            telaTurma = tela,
+            erro = null,
+            sucesso = null
+        )
     }
 
-    fun onCodigoChange(codigo: String) {
-        _uiState.value = _uiState.value.copy(codigo = codigo, erro = null)
+    fun criarTurma(nome: String) {
+        val gestorId = auth.currentUser?.uid ?: return
+        if (nome.isBlank()) {
+            _uiState.value = _uiState.value.copy(erro = "Nome da turma não pode ser vazio")
+            return
+        }
+        val codigo = gerarCodigo()
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(carregando = true, erro = null)
+            firestoreRepository.criarTurma(nome.trim(), codigo, gestorId)
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        carregando = false,
+                        sucesso = "Turma criada! Código: $codigo",
+                        telaTurma = TelaTurma.INICIAL
+                    )
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        carregando = false,
+                        erro = e.message ?: "Erro ao criar turma"
+                    )
+                }
+        }
     }
 
-    fun entrarTurma() {
-        val codigo = _uiState.value.codigo.trim()
+    fun entrarNaTurma(codigo: String) {
+        val jogadorId = auth.currentUser?.uid ?: return
         if (codigo.isBlank()) {
             _uiState.value = _uiState.value.copy(erro = "Digite o código da turma")
             return
         }
-        val turma = TurmaDataSource.getByCodigo(codigo)
-        if (turma == null) {
-            _uiState.value = _uiState.value.copy(erro = "Turma não encontrada. Verifique o código.")
-            return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(carregando = true, erro = null)
+            firestoreRepository.entrarNaTurma(codigo.trim().uppercase(), jogadorId)
+                .onSuccess { turma ->
+                    _uiState.value = _uiState.value.copy(
+                        carregando = false,
+                        sucesso = "Entrou na turma: ${turma["nome"]}",
+                        turmaAtual = turma,
+                        telaTurma = TelaTurma.INICIAL
+                    )
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        carregando = false,
+                        erro = e.message ?: "Turma não encontrada"
+                    )
+                }
         }
-        if (turmaPrefs.getCodigos().contains(turma.codigo.uppercase())) {
-            _uiState.value = _uiState.value.copy(erro = "Você já está nessa turma")
-            return
-        }
-        turmaPrefs.entrar(turma.codigo)
-        carregar()
-        _uiState.value = _uiState.value.copy(codigo = "", mensagem = "Você entrou em \"${turma.nome}\"!")
     }
 
-    fun sairTurma(turma: Turma) {
-        turmaPrefs.sair(turma.codigo)
-        carregar()
+    fun limparMensagens() {
+        _uiState.value = _uiState.value.copy(erro = null, sucesso = null)
     }
 
-    fun limparMensagem() {
-        _uiState.value = _uiState.value.copy(mensagem = null)
-    }
-
-    private fun carregar() {
-        val turmas = turmaPrefs.getCodigos()
-            .mapNotNull { TurmaDataSource.getByCodigo(it) }
-            .sortedBy { it.nome }
-        _uiState.value = _uiState.value.copy(turmasInscritas = turmas, erro = null)
+    private fun gerarCodigo(): String {
+        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return (1..6).map { chars.random() }.joinToString("")
     }
 }

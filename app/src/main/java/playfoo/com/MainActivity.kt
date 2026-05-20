@@ -48,8 +48,8 @@ fun ForcaNavHost() {
             GameScreen(onVoltar = { navController.navigateUp() })
         }
         composable("multiplayer") { MultiplayerScreen(navController) }
-        composable("turmas") { TurmaScreen(navController) }
-        composable("dashboard") { DashboardScreen(navController) }
+        composable("turmas") { TurmaScreen(onVoltar = { navController.navigateUp() }) }
+        composable("dashboard") { DashboardScreen(onVoltar = { navController.navigateUp() }) }
         composable("perfil") { PerfilScreen(navController) }
         composable("login") { LoginScreen(navController) }
     }
