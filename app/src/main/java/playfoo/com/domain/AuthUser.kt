@@ -4,5 +4,6 @@ data class AuthUser(
     val id: String,
     val nome: String,
     val email: String,
-    val provedor: AuthProvedor = AuthProvedor.EMAIL
+    val provedor: AuthProvedor = AuthProvedor.EMAIL,
+    val tipo: String = TipoUsuario.ALUNO
 )

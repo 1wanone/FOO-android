@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import playfoo.com.data.remote.FirestoreRepository
+import playfoo.com.domain.TipoUsuario
 import javax.inject.Inject
 
 data class EstatisticaTema(
@@ -36,7 +37,8 @@ data class DashboardUiState(
     val palavrasMaisDificeis: List<EstatisticaPalavra> = emptyList(),
     val evolucaoSemanal: List<Pair<String, Int>> = emptyList(),
     val turmaId: String? = null,
-    val nomeTurma: String = "Minha Turma"
+    val nomeTurma: String = "Minha Turma",
+    val tipoUsuario: String = TipoUsuario.ALUNO
 )
 
 @HiltViewModel
@@ -47,6 +49,19 @@ class DashboardViewModel @Inject constructor(
     private val auth = FirebaseAuth.getInstance()
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
+
+    init {
+        val uid = auth.currentUser?.uid
+        if (uid != null) {
+            viewModelScope.launch {
+                firestoreRepository.getUsuario(uid)
+                    .onSuccess { data ->
+                        val tipo = data["tipo"]?.toString() ?: TipoUsuario.ALUNO
+                        _uiState.value = _uiState.value.copy(tipoUsuario = tipo)
+                    }
+            }
+        }
+    }
 
     fun carregarDados(turmaId: String) {
         viewModelScope.launch {

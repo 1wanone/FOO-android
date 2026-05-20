@@ -9,9 +9,12 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import playfoo.com.domain.TipoUsuario
 import dagger.hilt.android.AndroidEntryPoint
 import playfoo.com.ui.auth.LoginScreen
 import playfoo.com.ui.dashboard.DashboardScreen
@@ -41,8 +44,14 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ForcaNavHost() {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = "menu") {
-        composable("menu") { MenuScreen(navController) }
+    NavHost(navController = navController, startDestination = "login") {
+        composable(
+            route = "menu?tipo={tipo}",
+            arguments = listOf(navArgument("tipo") { defaultValue = TipoUsuario.ALUNO })
+        ) { backStackEntry ->
+            val tipo = backStackEntry.arguments?.getString("tipo") ?: TipoUsuario.ALUNO
+            MenuScreen(navController, tipo)
+        }
         composable("selecionar_tema") { SelecionarTemaScreen(navController) }
         composable("jogo/{temaId}/{dificuldade}") {
             GameScreen(onVoltar = { navController.navigateUp() })

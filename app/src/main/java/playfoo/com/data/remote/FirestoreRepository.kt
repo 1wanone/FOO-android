@@ -127,4 +127,52 @@ class FirestoreRepository @Inject constructor() {
     } catch (e: Exception) {
         Result.failure(e)
     }
+
+    // Buscar perfil do usuário
+    suspend fun getUsuario(id: String): Result<Map<String, Any>> = try {
+        val doc = usuarios.document(id).get().await()
+        if (doc.exists()) Result.success(doc.data!!)
+        else Result.failure(Exception("Usuário não encontrado"))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Estatísticas pessoais do aluno
+    suspend fun getEstatisticasAluno(jogadorId: String): Result<Map<String, Any>> = try {
+        val snapshot = partidas
+            .whereEqualTo("jogadorId", jogadorId)
+            .get()
+            .await()
+
+        val total = snapshot.size()
+        val vitorias = snapshot.documents.count { it.getBoolean("venceu") == true }
+        val derrotas = total - vitorias
+        val taxaVitoria = if (total == 0) 0f else vitorias.toFloat() / total * 100f
+
+        val palavrasErradas = snapshot.documents
+            .filter { it.getBoolean("venceu") == false }
+            .groupBy { it.getString("palavra") ?: "" }
+            .filterKeys { it.isNotBlank() }
+            .mapValues { it.value.size }
+            .entries
+            .sortedByDescending { it.value }
+            .take(5)
+            .associate { it.key to it.value }
+
+        val temaFavorito = snapshot.documents
+            .groupBy { it.getString("tema") ?: "" }
+            .maxByOrNull { it.value.size }
+            ?.key ?: "Nenhum"
+
+        Result.success(mapOf(
+            "totalPartidas"  to total,
+            "totalVitorias"  to vitorias,
+            "totalDerrotas"  to derrotas,
+            "taxaVitoria"    to taxaVitoria,
+            "palavrasErradas" to palavrasErradas,
+            "temaFavorito"   to temaFavorito
+        ))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
 }

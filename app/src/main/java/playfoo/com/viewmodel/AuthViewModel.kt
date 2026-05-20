@@ -15,7 +15,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import playfoo.com.data.remote.FirebaseAuthRepository
+import playfoo.com.data.remote.FirestoreRepository
 import playfoo.com.domain.AuthUser
+import playfoo.com.domain.TipoUsuario
 import javax.inject.Inject
 
 sealed class AuthUiState {
@@ -27,7 +29,8 @@ sealed class AuthUiState {
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val firebaseAuthRepository: FirebaseAuthRepository
+    private val firebaseAuthRepository: FirebaseAuthRepository,
+    private val firestoreRepository: FirestoreRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
@@ -46,25 +49,36 @@ class AuthViewModel @Inject constructor(
 
         viewModelScope.launch {
             _state.value = AuthUiState.Carregando
-            val result = firebaseAuthRepository.loginEmail(email, senha)
-            _state.value = result.fold(
-                onSuccess = { AuthUiState.Sucesso(it) },
-                onFailure = { AuthUiState.Erro("Email ou senha incorretos") }
-            )
+            firebaseAuthRepository.loginEmail(email, senha)
+                .onSuccess { user ->
+                    val tipo = firestoreRepository.getUsuario(user.id)
+                        .getOrNull()?.get("tipo")?.toString() ?: TipoUsuario.ALUNO
+                    _state.value = AuthUiState.Sucesso(user.copy(tipo = tipo))
+                }
+                .onFailure { _state.value = AuthUiState.Erro("Email ou senha incorretos") }
         }
     }
 
-    fun registrar(nome: String, email: String, senha: String, confirmar: String) {
+    fun registrar(nome: String, email: String, senha: String, confirmar: String, codigoProfessor: String = "") {
         val erro = validarCadastro(nome, email, senha, confirmar)
         if (erro != null) { _state.value = AuthUiState.Erro(erro); return }
 
+        val tipo = if (codigoProfessor.trim().uppercase() == TipoUsuario.CODIGO_PROFESSOR)
+            TipoUsuario.GESTOR else TipoUsuario.ALUNO
+
         viewModelScope.launch {
             _state.value = AuthUiState.Carregando
-            val result = firebaseAuthRepository.registrar(nome, email, senha)
-            _state.value = result.fold(
-                onSuccess = { AuthUiState.Sucesso(it) },
-                onFailure = { AuthUiState.Erro(it.localizedMessage ?: "Erro ao criar conta") }
-            )
+            firebaseAuthRepository.registrar(nome, email, senha)
+                .onSuccess { user ->
+                    firestoreRepository.salvarUsuario(
+                        id = user.id,
+                        nome = nome,
+                        email = email,
+                        tipo = tipo
+                    )
+                    _state.value = AuthUiState.Sucesso(user.copy(tipo = tipo))
+                }
+                .onFailure { _state.value = AuthUiState.Erro(it.localizedMessage ?: "Erro ao criar conta") }
         }
     }
 
@@ -85,11 +99,13 @@ class AuthViewModel @Inject constructor(
                 if (cred is CustomCredential &&
                     cred.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                     val googleCred = GoogleIdTokenCredential.createFrom(cred.data)
-                    val result = firebaseAuthRepository.loginGoogle(googleCred.idToken)
-                    _state.value = result.fold(
-                        onSuccess = { AuthUiState.Sucesso(it) },
-                        onFailure = { AuthUiState.Erro(it.localizedMessage ?: "Erro no login com Google") }
-                    )
+                    firebaseAuthRepository.loginGoogle(googleCred.idToken)
+                        .onSuccess { user ->
+                            val tipo = firestoreRepository.getUsuario(user.id)
+                                .getOrNull()?.get("tipo")?.toString() ?: TipoUsuario.ALUNO
+                            _state.value = AuthUiState.Sucesso(user.copy(tipo = tipo))
+                        }
+                        .onFailure { _state.value = AuthUiState.Erro(it.localizedMessage ?: "Erro no login com Google") }
                 } else {
                     _state.value = AuthUiState.Erro("Tipo de credencial não suportado")
                 }

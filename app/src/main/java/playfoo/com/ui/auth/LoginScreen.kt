@@ -61,6 +61,7 @@ import playfoo.com.ui.components.BotaoCartoonTipo
 import playfoo.com.ui.components.CardCartoon
 import playfoo.com.ui.components.FundoTela
 import playfoo.com.ui.components.TipoFundo
+import playfoo.com.domain.TipoUsuario
 import playfoo.com.viewmodel.AuthUiState
 import playfoo.com.viewmodel.AuthViewModel
 
@@ -77,7 +78,10 @@ fun LoginScreen(
 
     LaunchedEffect(authState) {
         if (authState is AuthUiState.Sucesso) {
-            navController.navigate("menu") {
+            val usuario = (authState as AuthUiState.Sucesso).usuario
+            val destino = if (usuario.tipo == TipoUsuario.GESTOR) "dashboard"
+                          else "menu?tipo=${usuario.tipo}"
+            navController.navigate(destino) {
                 popUpTo("login") { inclusive = true }
                 launchSingleTop = true
             }
@@ -119,8 +123,8 @@ fun LoginScreen(
                     )
                     TelaAuth.REGISTRO -> CardRegistro(
                         authState    = authState,
-                        onRegistrar  = { nome, email, senha, confirmar ->
-                            viewModel.registrar(nome, email, senha, confirmar)
+                        onRegistrar  = { nome, email, senha, confirmar, codigoProfessor ->
+                            viewModel.registrar(nome, email, senha, confirmar, codigoProfessor)
                         },
                         onVoltarLogin = { viewModel.limparEstado(); telaAtual = TelaAuth.LOGIN }
                     )
@@ -275,13 +279,14 @@ private fun CardLogin(
 @Composable
 private fun CardRegistro(
     authState: AuthUiState,
-    onRegistrar: (String, String, String, String) -> Unit,
+    onRegistrar: (String, String, String, String, String) -> Unit,
     onVoltarLogin: () -> Unit
 ) {
     var nome by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
     var confirmar by remember { mutableStateOf("") }
+    var codigoProfessor by remember { mutableStateOf("") }
     var senhaVisivel by remember { mutableStateOf(false) }
     var confirmarVisivel by remember { mutableStateOf(false) }
     var erroLocal by remember { mutableStateOf<String?>(null) }
@@ -347,11 +352,28 @@ private fun CardRegistro(
             label = "Confirmar senha",
             visivel = confirmarVisivel,
             onToggleVisibilidade = { confirmarVisivel = !confirmarVisivel },
-            imeAction = ImeAction.Done,
+            imeAction = ImeAction.Next,
+            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        CampoTexto(
+            valor = codigoProfessor,
+            onValorChange = { codigoProfessor = it; erroLocal = null },
+            label = "Código do professor (opcional)",
+            leadingIcon = { Icon(Icons.Default.Person, null, tint = Color(0xFF6C63FF)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = {
                 focusManager.clearFocus()
-                if (validar()) onRegistrar(nome, email, senha, confirmar)
+                if (validar()) onRegistrar(nome, email, senha, confirmar, codigoProfessor)
             })
+        )
+        Text(
+            text = "Deixe em branco se você é aluno",
+            color = Color.White.copy(alpha = 0.45f),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.fillMaxWidth()
         )
 
         erroExibido?.let {
@@ -369,7 +391,7 @@ private fun CardRegistro(
         } else {
             BotaoCartoon(
                 texto = "Criar conta",
-                onClick = { if (validar()) onRegistrar(nome, email, senha, confirmar) },
+                onClick = { if (validar()) onRegistrar(nome, email, senha, confirmar, codigoProfessor) },
                 tipo = BotaoCartoonTipo.PRIMARIO,
                 modifier = Modifier.fillMaxWidth()
             )

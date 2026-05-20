@@ -24,6 +24,7 @@ import com.github.mikephil.charting.components.Legend
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import playfoo.com.ui.components.CardCartoon
+import playfoo.com.domain.TipoUsuario
 import playfoo.com.ui.components.FundoTela
 import playfoo.com.ui.components.TipoFundo
 import playfoo.com.viewmodel.DashboardViewModel
@@ -77,6 +78,29 @@ fun DashboardScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = Color(0xFFFF9800))
+                }
+            } else if (uiState.tipoUsuario != TipoUsuario.GESTOR) {
+                CardCartoon(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "🔒", fontSize = 48.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "Acesso restrito a professores",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "Somente gestores podem visualizar o dashboard",
+                            color = Color.White.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
             } else {
 

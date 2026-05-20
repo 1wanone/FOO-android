@@ -1,9 +1,9 @@
 package playfoo.com.ui.perfil
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,9 +45,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import playfoo.com.domain.AvatarConfig
-import playfoo.com.domain.AuthUser
-import playfoo.com.domain.JogadorAluno
-import playfoo.com.domain.NivelAluno
 import playfoo.com.ui.components.BotaoCartoon
 import playfoo.com.ui.components.BotaoCartoonTipo
 import playfoo.com.ui.components.CardCartoon
@@ -54,19 +52,10 @@ import playfoo.com.ui.components.FundoTela
 import playfoo.com.ui.components.TipoFundo
 import playfoo.com.ui.game.components.AvatarView
 import playfoo.com.ui.game.components.EstadoAvatar
+import playfoo.com.viewmodel.PerfilUiState
 import playfoo.com.viewmodel.PerfilViewModel
 
 private enum class TelaPerfil { PERFIL, EDITOR_AVATAR }
-
-// Mock — será substituído quando o backend estiver pronto
-private val jogadorMock = JogadorAluno(
-    id            = "1",
-    nome          = "Jogador Teste",
-    totalPartidas = 15,
-    totalVitorias = 9,
-    totalDerrotas = 6,
-    turmaId       = "POO-2026"
-)
 
 @Composable
 fun PerfilScreen(
@@ -105,14 +94,12 @@ fun PerfilScreen(
             when (tela) {
                 TelaPerfil.PERFIL ->
                     ConteudoPerfil(
-                        avatarConfig   = uiState.avatarConfig,
-                        usuario        = uiState.usuarioLogado,
-                        jogador        = jogadorMock,
+                        uiState        = uiState,
                         onPersonalizar = { viewModel.abrirEditor() },
                         onLogout       = {
                             viewModel.logout()
                             navController.navigate("login") {
-                                popUpTo("menu") { inclusive = false }
+                                popUpTo(0) { inclusive = true }
                                 launchSingleTop = true
                             }
                         },
@@ -133,19 +120,13 @@ fun PerfilScreen(
 
 @Composable
 private fun ConteudoPerfil(
-    avatarConfig: AvatarConfig,
-    usuario: AuthUser?,
-    jogador: JogadorAluno,
+    uiState: PerfilUiState,
     onPersonalizar: () -> Unit,
     onLogout: () -> Unit,
     onFazerLogin: () -> Unit,
     onEntrarTurma: () -> Unit,
     onVoltar: () -> Unit
 ) {
-    val nomeExibido = usuario?.nome ?: jogador.nome
-    val nivel = jogador.calcularNivel()
-    val taxa  = jogador.calcularTaxaVitoria()
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -175,7 +156,7 @@ private fun ConteudoPerfil(
 
         // Avatar
         AvatarView(
-            config = avatarConfig,
+            config = uiState.avatarConfig,
             estado = EstadoAvatar.NEUTRO,
             modifier = Modifier.size(160.dp)
         )
@@ -183,16 +164,16 @@ private fun ConteudoPerfil(
         Spacer(Modifier.height(12.dp))
 
         Text(
-            text = nomeExibido,
+            text = uiState.nomeUsuario.ifBlank { "Jogador" },
             style = MaterialTheme.typography.headlineSmall,
             color = Color.White,
             fontWeight = FontWeight.Bold
         )
 
-        usuario?.email?.let { email ->
+        if (uiState.emailUsuario.isNotBlank()) {
             Spacer(Modifier.height(4.dp))
             Text(
-                text = email,
+                text = uiState.emailUsuario,
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.55f)
             )
@@ -210,7 +191,7 @@ private fun ConteudoPerfil(
 
         Spacer(Modifier.height(24.dp))
 
-        // Estatísticas
+        // Estatísticas básicas
         CardCartoon(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "Estatísticas",
@@ -231,9 +212,9 @@ private fun ConteudoPerfil(
                     color = Color.White.copy(alpha = 0.7f),
                     style = MaterialTheme.typography.bodyMedium
                 )
-                Surface(color = corNivel(nivel), shape = MaterialTheme.shapes.small) {
+                Surface(color = corNivel(uiState.nivel), shape = MaterialTheme.shapes.small) {
                     Text(
-                        text = nivel.name,
+                        text = uiState.nivel,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelMedium,
                         color = Color.White,
@@ -246,38 +227,45 @@ private fun ConteudoPerfil(
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
             Spacer(Modifier.height(12.dp))
 
-            LinhaEstatistica("Partidas jogadas", "${jogador.totalPartidas}", Color.White)
-            Spacer(Modifier.height(8.dp))
-            LinhaEstatistica("Vitórias", "${jogador.totalVitorias}", Color(0xFF66BB6A))
-            Spacer(Modifier.height(8.dp))
-            LinhaEstatistica("Derrotas", "${jogador.totalDerrotas}", Color(0xFFEF5350))
-
-            Spacer(Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Taxa de vitória",
-                    color = Color.White.copy(alpha = 0.7f),
-                    style = MaterialTheme.typography.bodyMedium
+            if (uiState.carregando) {
+                CircularProgressIndicator(
+                    color = Color(0xFF6C63FF),
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
-                Text(
-                    text = "%.0f%%".format(taxa),
-                    color = Color(0xFF66BB6A),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
+            } else {
+                LinhaEstatistica("Partidas jogadas", "${uiState.totalPartidas}", Color.White)
+                Spacer(Modifier.height(8.dp))
+                LinhaEstatistica("Vitórias", "${uiState.totalVitorias}", Color(0xFF66BB6A))
+                Spacer(Modifier.height(8.dp))
+                LinhaEstatistica("Derrotas", "${uiState.totalDerrotas}", Color(0xFFEF5350))
+
+                Spacer(Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Taxa de vitória",
+                        color = Color.White.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "%.0f%%".format(uiState.taxaVitoria),
+                        color = Color(0xFF66BB6A),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+                LinearProgressIndicator(
+                    progress   = { uiState.taxaVitoria / 100f },
+                    modifier   = Modifier.fillMaxWidth(),
+                    color      = Color(0xFF66BB6A),
+                    trackColor = Color.White.copy(alpha = 0.15f)
                 )
             }
-            Spacer(Modifier.height(6.dp))
-            LinearProgressIndicator(
-                progress      = { taxa / 100f },
-                modifier      = Modifier.fillMaxWidth(),
-                color         = Color(0xFF66BB6A),
-                trackColor    = Color.White.copy(alpha = 0.15f)
-            )
         }
 
         Spacer(Modifier.height(16.dp))
@@ -293,7 +281,7 @@ private fun ConteudoPerfil(
 
             Spacer(Modifier.height(12.dp))
 
-            if (jogador.turmaId != null) {
+            if (uiState.turmaId != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -309,7 +297,7 @@ private fun ConteudoPerfil(
                         shape = MaterialTheme.shapes.small
                     ) {
                         Text(
-                            text = jogador.turmaId,
+                            text = uiState.turmaId,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelLarge,
                             color = Color(0xFFAFA8FF),
@@ -334,9 +322,109 @@ private fun ConteudoPerfil(
             }
         }
 
+        Spacer(Modifier.height(16.dp))
+
+        // Minhas Estatísticas detalhadas
+        CardCartoon(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "📈 Minhas Estatísticas",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // Nível chip
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Nível:",
+                    color = Color.White.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Surface(color = corNivel(uiState.nivel), shape = MaterialTheme.shapes.medium) {
+                    Text(
+                        text = uiState.nivel,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Grid 2x2
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                MiniCard("🎮", uiState.totalPartidas.toString(), "Partidas", Modifier.weight(1f))
+                MiniCard("🏆", uiState.totalVitorias.toString(), "Vitórias", Modifier.weight(1f))
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                MiniCard("💔", uiState.totalDerrotas.toString(), "Derrotas", Modifier.weight(1f))
+                MiniCard("📊", "${uiState.taxaVitoria.toInt()}%", "Taxa", Modifier.weight(1f))
+            }
+
+            if (uiState.temaFavorito.isNotBlank() && uiState.temaFavorito != "Nenhum") {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Tema favorito:",
+                        color = Color.White.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = uiState.temaFavorito,
+                        color = Color(0xFF6C63FF),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+            if (uiState.palavrasErradas.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "Palavras difíceis:",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(Modifier.height(4.dp))
+                uiState.palavrasErradas.entries.forEach { (palavra, erros) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(palavra, color = Color.White, style = MaterialTheme.typography.bodySmall)
+                        Text("$erros erros", color = Color(0xFFE53935), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+
         Spacer(Modifier.height(24.dp))
 
-        if (usuario != null) {
+        if (uiState.usuarioLogado != null) {
             BotaoCartoon(
                 texto    = "Sair",
                 onClick  = onLogout,
@@ -353,6 +441,17 @@ private fun ConteudoPerfil(
         }
 
         Spacer(Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun MiniCard(emoji: String, valor: String, label: String, modifier: Modifier = Modifier) {
+    CardCartoon(modifier = modifier, padding = 8.dp, corBorda = Color(0xFF6C63FF)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(emoji, fontSize = 20.sp)
+            Text(valor, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(label, color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+        }
     }
 }
 
@@ -383,7 +482,6 @@ private fun ConteudoEditorAvatar(
             }
         }
 
-        // AvatarEditorScreen já tem seu próprio scroll interno
         Box(modifier = Modifier.weight(1f)) {
             AvatarEditorScreen(
                 avatarAtual = avatarAtual,
@@ -405,9 +503,10 @@ private fun LinhaEstatistica(label: String, valor: String, corValor: Color) {
     }
 }
 
-private fun corNivel(nivel: NivelAluno): Color = when (nivel) {
-    NivelAluno.INICIANTE     -> Color(0xFF4CAF50) // verde
-    NivelAluno.INTERMEDIARIO -> Color(0xFF2196F3) // azul
-    NivelAluno.AVANCADO      -> Color(0xFFFF9800) // laranja
-    NivelAluno.EXPERT        -> Color(0xFF9C27B0) // roxo
+private fun corNivel(nivel: String): Color = when (nivel) {
+    "INICIANTE"     -> Color(0xFF4CAF50)
+    "INTERMEDIARIO" -> Color(0xFF2196F3)
+    "AVANCADO"      -> Color(0xFFFF9800)
+    "EXPERT"        -> Color(0xFF9C27B0)
+    else            -> Color(0xFF4CAF50)
 }
