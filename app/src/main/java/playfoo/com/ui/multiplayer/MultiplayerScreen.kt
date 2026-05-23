@@ -7,6 +7,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,11 +24,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
@@ -48,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import playfoo.com.data.TemaDataSource
 import playfoo.com.domain.Dificuldade
 import playfoo.com.ui.components.BotaoCartoon
 import playfoo.com.ui.components.BotaoCartoonTipo
@@ -67,8 +72,17 @@ fun MultiplayerScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    BackHandler(enabled = uiState.tela == TelaMultiplayer.CRIAR || uiState.tela == TelaMultiplayer.ENTRAR) {
-        viewModel.irPara(TelaMultiplayer.INICIAL)
+    BackHandler(
+        enabled = uiState.tela == TelaMultiplayer.CRIAR ||
+                  uiState.tela == TelaMultiplayer.ENTRAR ||
+                  uiState.tela == TelaMultiplayer.ESCOLHER_TEMA
+    ) {
+        viewModel.irPara(
+            when (uiState.tela) {
+                TelaMultiplayer.ESCOLHER_TEMA -> TelaMultiplayer.RESULTADO
+                else -> TelaMultiplayer.INICIAL
+            }
+        )
     }
 
     FundoTela(tipo = TipoFundo.MULTIPLAYER) {
@@ -105,9 +119,16 @@ fun MultiplayerScreen(
                     onLetra = viewModel::tentarLetra
                 )
                 TelaMultiplayer.RESULTADO -> TelaResultado(
-                    uiState          = uiState,
-                    onJogarNovamente = viewModel::reiniciar,
-                    onVoltar         = onVoltar
+                    euVenci          = uiState.euVenci,
+                    palavraFinal     = uiState.palavraFinal,
+                    tema             = uiState.tema,
+                    onJogarMesmoTema = { viewModel.jogarNovamenteMesmoTema() },
+                    onEscolherTema   = { viewModel.irPara(TelaMultiplayer.ESCOLHER_TEMA) },
+                    onVoltar         = { viewModel.reiniciar(); onVoltar() }
+                )
+                TelaMultiplayer.ESCOLHER_TEMA -> TelaEscolherTema(
+                    onTemaEscolhido = { temaId -> viewModel.escolherTema(temaId) },
+                    onVoltar        = { viewModel.irPara(TelaMultiplayer.RESULTADO) }
                 )
             }
         }
@@ -572,7 +593,7 @@ private fun TelaJogar(
             }
         }
 
-        // Aguardando resultado (se eu terminei mas jogo ainda não finalizou)
+        // Aguardando resultado
         if (uiState.terminei) {
             CardCartoon(modifier = Modifier.fillMaxWidth(), corBorda = Color(0xFFFF9800)) {
                 Column(
@@ -611,12 +632,8 @@ private fun TelaJogar(
 private fun CoracoesRow(restantes: Int, maximas: Int) {
     val usados = maximas - restantes
     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        repeat(restantes.coerceAtLeast(0)) {
-            Text("❤️", fontSize = 14.sp)
-        }
-        repeat(usados.coerceAtLeast(0)) {
-            Text("🖤", fontSize = 14.sp)
-        }
+        repeat(restantes.coerceAtLeast(0)) { Text("❤️", fontSize = 14.sp) }
+        repeat(usados.coerceAtLeast(0)) { Text("🖤", fontSize = 14.sp) }
     }
 }
 
@@ -624,62 +641,142 @@ private fun CoracoesRow(restantes: Int, maximas: Int) {
 
 @Composable
 private fun TelaResultado(
-    uiState: MultiplayerUiState,
-    onJogarNovamente: () -> Unit,
+    euVenci: Boolean,
+    palavraFinal: String,
+    tema: String,
+    onJogarMesmoTema: () -> Unit,
+    onEscolherTema: () -> Unit,
     onVoltar: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
+        Text(if (euVenci) "🏆" else "😢", fontSize = 80.sp)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = if (euVenci) "Você venceu!" else "Você perdeu!",
+            style = MaterialTheme.typography.headlineLarge,
+            color = if (euVenci) Color(0xFFFFD700) else Color(0xFFE53935),
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "A palavra era:",
+            color = Color.White.copy(alpha = 0.7f)
+        )
+        Text(
+            text = palavraFinal,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 24.sp,
+            letterSpacing = 4.sp
+        )
+        Text(
+            text = "Tema: $tema",
+            color = Color(0xFF6C63FF),
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        Spacer(Modifier.height(32.dp))
+
         CardCartoon(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = if (uiState.euVenci) "🏆" else "😢",
-                    fontSize = 80.sp
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = if (uiState.euVenci) "Você venceu!" else "Você perdeu!",
-                    color = if (uiState.euVenci) Color(0xFF4CAF50) else Color(0xFFE53935),
+                    "Jogar novamente?",
+                    color = Color.White,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 28.sp,
-                    textAlign = TextAlign.Center
+                    fontSize = 16.sp
                 )
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    text = "A palavra era:",
-                    color = Color.White.copy(alpha = 0.6f),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = uiState.palavraFinal,
-                    color = Color(0xFF6C63FF),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 32.sp,
-                    letterSpacing = 4.sp
-                )
-                Spacer(Modifier.height(24.dp))
                 BotaoCartoon(
-                    texto    = "Jogar Novamente",
-                    onClick  = onJogarNovamente,
+                    texto    = "🔄  Mesmo tema — $tema",
+                    onClick  = onJogarMesmoTema,
                     tipo     = BotaoCartoonTipo.PRIMARIO,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(Modifier.height(8.dp))
                 BotaoCartoon(
-                    texto    = "Voltar ao Menu",
-                    onClick  = onVoltar,
+                    texto    = "🎲  Escolher outro tema",
+                    onClick  = onEscolherTema,
                     tipo     = BotaoCartoonTipo.SECUNDARIO,
                     modifier = Modifier.fillMaxWidth()
                 )
+                OutlinedButton(
+                    onClick  = onVoltar,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors   = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color.White.copy(alpha = 0.7f)
+                    ),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
+                ) {
+                    Text("← Sair do multiplayer")
+                }
+            }
+        }
+    }
+}
+
+// ── TELA ESCOLHER TEMA ────────────────────────────────────────────────────────
+
+@Composable
+private fun TelaEscolherTema(
+    onTemaEscolhido: (temaId: Int) -> Unit,
+    onVoltar: () -> Unit
+) {
+    val temas = TemaDataSource.temas
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onVoltar) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar", tint = Color.White)
+            }
+            Text(
+                "Escolher Tema",
+                style = MaterialTheme.typography.headlineMedium,
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        temas.forEach { tema ->
+            CardCartoon(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onTemaEscolhido(tema.id) },
+                corBorda = Color(0xFF6C63FF),
+                padding  = 16.dp
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            tema.nome,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            "${tema.palavras.size} palavras",
+                            color = Color.White.copy(alpha = 0.6f),
+                            fontSize = 12.sp
+                        )
+                    }
+                    Text("→", color = Color(0xFF6C63FF), fontSize = 20.sp)
+                }
             }
         }
     }

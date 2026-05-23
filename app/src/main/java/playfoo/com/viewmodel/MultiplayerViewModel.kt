@@ -15,7 +15,7 @@ import playfoo.com.data.remote.FirestoreRepository
 import playfoo.com.domain.*
 import javax.inject.Inject
 
-enum class TelaMultiplayer { INICIAL, CRIAR, AGUARDAR, ENTRAR, JOGAR, RESULTADO }
+enum class TelaMultiplayer { INICIAL, CRIAR, AGUARDAR, ENTRAR, JOGAR, RESULTADO, ESCOLHER_TEMA }
 
 data class MultiplayerUiState(
     val tela: TelaMultiplayer = TelaMultiplayer.INICIAL,
@@ -28,6 +28,7 @@ data class MultiplayerUiState(
     val jogador2Nome: String = "",
     val tema: String = "",
     val dificuldade: Dificuldade = Dificuldade.NORMAL,
+    val temaIdFixo: Int? = null,
     // Estado local do jogador
     val progresso: String = "",
     val letrasCorretas: Set<Char> = emptySet(),
@@ -69,7 +70,11 @@ class MultiplayerViewModel @Inject constructor(
     fun criarSala(dificuldade: Dificuldade) {
         val userId = auth.currentUser?.uid ?: return
         val nome = auth.currentUser?.displayName ?: "Jogador 1"
-        val tema = TemaDataSource.temas.random()
+        val temaIdFixo = _uiState.value.temaIdFixo
+        val tema = if (temaIdFixo != null)
+            TemaDataSource.getTemaById(temaIdFixo) ?: TemaDataSource.getTemaAleatorio()
+        else
+            TemaDataSource.getTemaAleatorio()
         val palavra = tema.palavras.random()
 
         viewModelScope.launch {
@@ -314,6 +319,19 @@ class MultiplayerViewModel @Inject constructor(
             venci               = p.venceu(),
             estadoAvatar        = estadoAvatar
         )
+    }
+
+    fun jogarNovamenteMesmoTema() {
+        val temaAtual = TemaDataSource.temas.find { it.nome == _uiState.value.tema }
+        _uiState.value = _uiState.value.copy(temaIdFixo = temaAtual?.id)
+        partida = null
+        irPara(TelaMultiplayer.CRIAR)
+    }
+
+    fun escolherTema(temaId: Int) {
+        _uiState.value = _uiState.value.copy(temaIdFixo = temaId)
+        partida = null
+        irPara(TelaMultiplayer.CRIAR)
     }
 
     fun reiniciar() {
