@@ -57,6 +57,7 @@ class MultiplayerViewModel @Inject constructor(
 
     private val auth = FirebaseAuth.getInstance()
     private var timerJob: Job? = null
+    private var salaJob: Job? = null
 
     private val _uiState = MutableStateFlow(MultiplayerUiState())
     val uiState: StateFlow<MultiplayerUiState> = _uiState.asStateFlow()
@@ -87,18 +88,18 @@ class MultiplayerViewModel @Inject constructor(
                 onSuccess = { dados ->
                     val salaId = dados["id"].toString()
                     _uiState.value = _uiState.value.copy(
-                        carregando        = false,
-                        salaId            = salaId,
-                        codigoSala        = dados["codigo"].toString(),
-                        jogadorNumero     = 1,
-                        jogador1Nome      = nome,
-                        tema              = tema.nome,
-                        dificuldade       = dificuldade,
-                        palavra           = palavra.texto,
-                        palavraFinal      = palavra.texto,
-                        tentativasEu      = dificuldade.tentativasMaximas,
+                        carregando         = false,
+                        salaId             = salaId,
+                        codigoSala         = dados["codigo"].toString(),
+                        jogadorNumero      = 1,
+                        jogador1Nome       = nome,
+                        tema               = tema.nome,
+                        dificuldade        = dificuldade,
+                        palavra            = palavra.texto,
+                        palavraFinal       = palavra.texto,
+                        tentativasEu       = dificuldade.tentativasMaximas,
                         tentativasOponente = dificuldade.tentativasMaximas,
-                        tela              = TelaMultiplayer.AGUARDAR
+                        tela               = TelaMultiplayer.AGUARDAR
                     )
                     escutarSala(salaId)
                 },
@@ -161,60 +162,21 @@ class MultiplayerViewModel @Inject constructor(
     }
 
     private fun escutarSala(salaId: String) {
-        viewModelScope.launch {
+        salaJob?.cancel()
+        salaJob = viewModelScope.launch {
             firestoreRepository.escutarSala(salaId).collect { dados ->
-                val status = dados["status"]?.toString() ?: ""
-                val jogadorNumero = _uiState.value.jogadorNumero
-                val numOponente = if (jogadorNumero == 1) 2 else 1
-                val dif = _uiState.value.dificuldade
-
-                // Jogador 1: inicia quando jogador 2 entra
-                if (jogadorNumero == 1 &&
-                    _uiState.value.tela == TelaMultiplayer.AGUARDAR &&
-                    dados["jogador2Id"] != null
-                ) {
-                    _uiState.value = _uiState.value.copy(
-                        jogador2Nome = dados["jogador2Nome"]?.toString() ?: "Oponente",
-                        tela = TelaMultiplayer.JOGAR
-                    )
-                    iniciarTimer() // Jogador 1 sempre começa
-                }
-
-                // Retornar ao jogo se oponente reiniciou a sala
-                if (status == "jogando" && _uiState.value.tela == TelaMultiplayer.RESULTADO) {
-                    val novaPalavra = dados["palavra"]?.toString() ?: _uiState.value.palavra
-                    val novoTema    = dados["tema"]?.toString() ?: _uiState.value.tema
-                    _uiState.value = _uiState.value.copy(
-                        tela               = TelaMultiplayer.JOGAR,
-                        palavra            = novaPalavra,
-                        palavraFinal       = novaPalavra,
-                        tema               = novoTema,
-                        progresso          = "",
-                        letrasReveladas    = emptySet(),
-                        letrasErradasEu    = emptySet(),
-                        letrasErradasOponente = emptySet(),
-                        tentativasEu       = dif.tentativasMaximas,
-                        tentativasOponente = dif.tentativasMaximas,
-                        terminei           = false,
-                        turnoAtual         = 1,
-                        meuTurno           = jogadorNumero == 1,
-                        euVenci            = false
-                    )
-                    if (jogadorNumero == 1) iniciarTimer()
-                    return@collect
-                }
-
-                // Turno atual
-                val turnoAnterior = _uiState.value.turnoAtual
-                val turnoAtual = (dados["turnoAtual"] as? Long)?.toInt() ?: 1
-                val meuTurno = turnoAtual == jogadorNumero
-
-                // Estado compartilhado
+                val status       = dados["status"].toString()
+                val palavraFirestore = dados["palavra"].toString()
+                val temaFirestore    = dados["tema"].toString()
+                val turnoAtual   = (dados["turnoAtual"] as? Long)?.toInt() ?: 1
                 val letrasReveladas = (dados["letrasReveladas"]?.toString() ?: "")
                     .filter { it.isLetter() }.toSet()
-                val progresso = dados["progresso"]?.toString() ?: ""
+                val progresso    = dados["progresso"]?.toString() ?: ""
 
-                // Tentativas e erros individuais
+                val jogadorNumero  = _uiState.value.jogadorNumero
+                val numOponente    = if (jogadorNumero == 1) 2 else 1
+                val dif            = _uiState.value.dificuldade
+
                 val tentativasEu = (dados["tentativas$jogadorNumero"] as? Long)?.toInt()
                     ?: dif.tentativasMaximas
                 val tentativasOponente = (dados["tentativas$numOponente"] as? Long)?.toInt()
@@ -223,34 +185,82 @@ class MultiplayerViewModel @Inject constructor(
                     .filter { it.isLetter() }.toSet()
                 val letrasErradasOponente = (dados["letrasErradas$numOponente"]?.toString() ?: "")
                     .filter { it.isLetter() }.toSet()
+                val meuTurno   = turnoAtual == jogadorNumero
+                val terminei   = tentativasEu <= 0
 
-                val terminei = tentativasEu <= 0
+                // Detectar reinício de sala — palavra mudou
+                val palavraAnterior = _uiState.value.palavra
+                val salaReiniciada  = palavraAnterior.isNotEmpty() &&
+                                      palavraFirestore.isNotEmpty() &&
+                                      palavraFirestore != palavraAnterior
 
+                if (salaReiniciada) {
+                    timerJob?.cancel()
+                    _uiState.value = _uiState.value.copy(
+                        tela                  = TelaMultiplayer.JOGAR,
+                        palavra               = palavraFirestore,
+                        palavraFinal          = palavraFirestore,
+                        tema                  = temaFirestore,
+                        progresso             = "",
+                        letrasReveladas       = emptySet(),
+                        letrasErradasEu       = emptySet(),
+                        letrasErradasOponente = emptySet(),
+                        tentativasEu          = dif.tentativasMaximas,
+                        tentativasOponente    = dif.tentativasMaximas,
+                        turnoAtual            = turnoAtual,
+                        meuTurno              = meuTurno,
+                        terminei              = false,
+                        euVenci               = false
+                    )
+                    if (meuTurno) iniciarTimer()
+                    return@collect
+                }
+
+                // Capturar turno anterior antes de atualizar estado
+                val turnoAnterior = _uiState.value.turnoAtual
+                val telaAtual     = _uiState.value.tela
+
+                // Atualização normal
                 _uiState.value = _uiState.value.copy(
-                    turnoAtual             = turnoAtual,
-                    meuTurno               = meuTurno,
-                    letrasReveladas        = letrasReveladas,
-                    progresso              = progresso,
-                    tentativasEu           = tentativasEu,
-                    tentativasOponente     = tentativasOponente,
-                    letrasErradasEu        = letrasErradasEu,
-                    letrasErradasOponente  = letrasErradasOponente,
-                    terminei               = terminei
+                    palavra               = palavraFirestore,
+                    tema                  = temaFirestore,
+                    turnoAtual            = turnoAtual,
+                    meuTurno              = meuTurno,
+                    letrasReveladas       = letrasReveladas,
+                    progresso             = progresso,
+                    tentativasEu          = tentativasEu,
+                    tentativasOponente    = tentativasOponente,
+                    letrasErradasEu       = letrasErradasEu,
+                    letrasErradasOponente = letrasErradasOponente,
+                    terminei              = terminei,
+                    codigoSala            = dados["codigo"]?.toString() ?: _uiState.value.codigoSala
                 )
 
-                // Quando o turno muda, reinicia o timer
+                // Jogador 1 aguardando: jogador 2 entrou
+                if (jogadorNumero == 1 &&
+                    telaAtual == TelaMultiplayer.AGUARDAR &&
+                    dados["jogador2Id"] != null
+                ) {
+                    _uiState.value = _uiState.value.copy(
+                        jogador2Nome = dados["jogador2Nome"]?.toString() ?: "Oponente",
+                        tela = TelaMultiplayer.JOGAR
+                    )
+                    if (meuTurno) iniciarTimer()
+                }
+
+                // Turno mudou — gerenciar timer
                 if (turnoAtual != turnoAnterior && _uiState.value.tela == TelaMultiplayer.JOGAR) {
                     if (meuTurno && !terminei) iniciarTimer() else cancelarTimer()
                 }
 
                 // Resultado final
-                if (status == "finalizada" && _uiState.value.tela == TelaMultiplayer.JOGAR) {
+                if (status == "finalizada" && telaAtual == TelaMultiplayer.JOGAR) {
                     cancelarTimer()
                     val vencedorId = dados["vencedor"]?.toString() ?: ""
                     _uiState.value = _uiState.value.copy(
                         tela         = TelaMultiplayer.RESULTADO,
                         euVenci      = vencedorId == auth.currentUser?.uid,
-                        palavraFinal = _uiState.value.palavra
+                        palavraFinal = palavraFirestore
                     )
                 }
             }
@@ -260,9 +270,9 @@ class MultiplayerViewModel @Inject constructor(
     fun tentarLetra(letra: Char) {
         if (!_uiState.value.meuTurno) return
         val state = _uiState.value
+        if (state.palavra.isEmpty()) return
         val letraUpper = letra.uppercaseChar()
 
-        // Bloqueia letra já usada
         if (letraUpper in state.letrasReveladas) return
         if (letraUpper in state.letrasErradasEu) return
         if (letraUpper in state.letrasErradasOponente) return
@@ -277,7 +287,7 @@ class MultiplayerViewModel @Inject constructor(
             else '_'
         }.joinToString(" ")
 
-        val novasTentativas = if (acertou) state.tentativasEu else state.tentativasEu - 1
+        val novasTentativas    = if (acertou) state.tentativasEu else state.tentativasEu - 1
         val novasLetrasErradas = if (acertou) state.letrasErradasEu
                                  else state.letrasErradasEu + letraUpper
 
@@ -347,30 +357,13 @@ class MultiplayerViewModel @Inject constructor(
         val temaAtual = TemaDataSource.temas.find { it.nome == state.tema }
             ?: TemaDataSource.getTemaAleatorio()
         val novaPalavra = temaAtual.palavras.random()
-
         viewModelScope.launch {
             firestoreRepository.reiniciarSala(
                 salaId      = state.salaId,
                 novaPalavra = novaPalavra.texto,
                 novoTema    = temaAtual.nome
             )
-            _uiState.value = state.copy(
-                tela               = TelaMultiplayer.JOGAR,
-                palavra            = novaPalavra.texto,
-                palavraFinal       = novaPalavra.texto,
-                tema               = temaAtual.nome,
-                progresso          = "",
-                letrasReveladas    = emptySet(),
-                letrasErradasEu    = emptySet(),
-                letrasErradasOponente = emptySet(),
-                tentativasEu       = state.dificuldade.tentativasMaximas,
-                tentativasOponente = state.dificuldade.tentativasMaximas,
-                terminei           = false,
-                euVenci            = false,
-                turnoAtual         = 1,
-                meuTurno           = state.jogadorNumero == 1
-            )
-            if (state.jogadorNumero == 1) iniciarTimer()
+            // Estado atualizado pelo listener ao detectar mudança de palavra
         }
     }
 
@@ -378,35 +371,19 @@ class MultiplayerViewModel @Inject constructor(
         val state = _uiState.value
         val tema = TemaDataSource.getTemaById(temaId) ?: TemaDataSource.getTemaAleatorio()
         val novaPalavra = tema.palavras.random()
-
         viewModelScope.launch {
             firestoreRepository.reiniciarSala(
                 salaId      = state.salaId,
                 novaPalavra = novaPalavra.texto,
                 novoTema    = tema.nome
             )
-            _uiState.value = state.copy(
-                tela               = TelaMultiplayer.JOGAR,
-                palavra            = novaPalavra.texto,
-                palavraFinal       = novaPalavra.texto,
-                tema               = tema.nome,
-                progresso          = "",
-                letrasReveladas    = emptySet(),
-                letrasErradasEu    = emptySet(),
-                letrasErradasOponente = emptySet(),
-                tentativasEu       = state.dificuldade.tentativasMaximas,
-                tentativasOponente = state.dificuldade.tentativasMaximas,
-                terminei           = false,
-                euVenci            = false,
-                turnoAtual         = 1,
-                meuTurno           = state.jogadorNumero == 1
-            )
-            if (state.jogadorNumero == 1) iniciarTimer()
+            // Estado atualizado pelo listener ao detectar mudança de palavra
         }
     }
 
     fun reiniciar() {
         timerJob?.cancel()
+        salaJob?.cancel()
         _uiState.value = MultiplayerUiState()
     }
 
