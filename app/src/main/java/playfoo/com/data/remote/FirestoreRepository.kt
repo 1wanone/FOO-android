@@ -238,6 +238,7 @@ class FirestoreRepository @Inject constructor() {
             "palavra"       to palavra,
             "dificuldade"   to dificuldade,
             "status"        to "aguardando",
+            "turnoAtual"    to 1,
             "progresso1"    to "",
             "progresso2"    to "",
             "tentativas1"   to 0,
@@ -312,6 +313,15 @@ class FirestoreRepository @Inject constructor() {
                 "vencedor" to vencedorId
             )
         ).await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    suspend fun passarTurno(salaId: String, proximoTurno: Int): Result<Unit> = try {
+        db.collection("salas").document(salaId)
+            .update("turnoAtual", proximoTurno)
+            .await()
         Result.success(Unit)
     } catch (e: Exception) {
         Result.failure(e)

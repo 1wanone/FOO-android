@@ -7,7 +7,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -48,14 +48,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import playfoo.com.domain.AvatarConfig
 import playfoo.com.domain.Dificuldade
 import playfoo.com.ui.components.BotaoCartoon
 import playfoo.com.ui.components.BotaoCartoonTipo
 import playfoo.com.ui.components.CardCartoon
 import playfoo.com.ui.components.FundoTela
 import playfoo.com.ui.components.TipoFundo
-import playfoo.com.ui.game.components.EstadoAvatar
 import playfoo.com.ui.game.components.ProgressoPalavra
 import playfoo.com.ui.game.components.TecladoLetras
 import playfoo.com.viewmodel.MultiplayerUiState
@@ -96,15 +94,15 @@ fun MultiplayerScreen(
                 )
                 TelaMultiplayer.AGUARDAR -> TelaAguardar(uiState = uiState)
                 TelaMultiplayer.ENTRAR   -> TelaEntrar(
-                    carregando  = uiState.carregando,
-                    erro        = uiState.erro,
-                    onEntrar    = viewModel::entrarNaSala,
-                    onVoltar    = { viewModel.irPara(TelaMultiplayer.INICIAL) },
+                    carregando   = uiState.carregando,
+                    erro         = uiState.erro,
+                    onEntrar     = viewModel::entrarNaSala,
+                    onVoltar     = { viewModel.irPara(TelaMultiplayer.INICIAL) },
                     onLimparErro = viewModel::limparErro
                 )
                 TelaMultiplayer.JOGAR    -> TelaJogar(
-                    uiState  = uiState,
-                    onLetra  = viewModel::tentarLetra
+                    uiState = uiState,
+                    onLetra = viewModel::tentarLetra
                 )
                 TelaMultiplayer.RESULTADO -> TelaResultado(
                     uiState          = uiState,
@@ -158,7 +156,7 @@ private fun TelaInicial(
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Ambos jogam a mesma palavra ao mesmo tempo.\nQuem revelar primeiro vence!",
+            text = "Sistema de turnos alternados.\nQuem revelar a palavra primeiro vence!",
             color = Color.White.copy(alpha = 0.7f),
             fontSize = 14.sp,
             textAlign = TextAlign.Center
@@ -227,9 +225,9 @@ private fun TelaCriar(
                     Column {
                         Text(
                             text = when (dif) {
-                                Dificuldade.FACIL   -> "Fácil  — ${dif.tentativasMaximas} tentativas, sem timer"
-                                Dificuldade.NORMAL  -> "Normal — ${dif.tentativasMaximas} tentativas, 2 min"
-                                Dificuldade.DIFICIL -> "Difícil — ${dif.tentativasMaximas} tentativas, 1 min"
+                                Dificuldade.FACIL   -> "Fácil  — ${dif.tentativasMaximas} tentativas, 30s/turno"
+                                Dificuldade.NORMAL  -> "Normal — ${dif.tentativasMaximas} tentativas, 20s/turno"
+                                Dificuldade.DIFICIL -> "Difícil — ${dif.tentativasMaximas} tentativas, 10s/turno"
                             },
                             color = Color.White,
                             style = MaterialTheme.typography.bodyMedium
@@ -354,20 +352,20 @@ private fun TelaEntrar(
                 label         = { Text("Código de 6 dígitos", color = Color.White.copy(alpha = 0.7f)) },
                 singleLine    = true,
                 keyboardOptions = KeyboardOptions(
-                    keyboardType    = KeyboardType.Text,
-                    capitalization  = KeyboardCapitalization.Characters
+                    keyboardType   = KeyboardType.Text,
+                    capitalization = KeyboardCapitalization.Characters
                 ),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor    = Color.White,
-                    unfocusedTextColor  = Color.White,
-                    focusedBorderColor  = Color(0xFF6C63FF),
+                    focusedTextColor     = Color.White,
+                    unfocusedTextColor   = Color.White,
+                    focusedBorderColor   = Color(0xFF6C63FF),
                     unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                    cursorColor         = Color(0xFF6C63FF)
+                    cursorColor          = Color(0xFF6C63FF)
                 ),
                 textStyle = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight   = FontWeight.Bold,
+                    fontWeight    = FontWeight.Bold,
                     letterSpacing = 4.sp,
-                    color        = Color.White
+                    color         = Color.White
                 )
             )
             if (!erro.isNullOrBlank()) {
@@ -433,7 +431,6 @@ private fun TelaJogar(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Eu
             CardCartoon(
                 modifier = Modifier.weight(1f),
                 corBorda = Color(0xFF2196F3),
@@ -454,7 +451,6 @@ private fun TelaJogar(
                 Spacer(Modifier.height(4.dp))
                 CoracoesRow(restantes = uiState.tentativasRestantes, maximas = maxTentativas)
             }
-            // Oponente
             CardCartoon(
                 modifier = Modifier.weight(1f),
                 corBorda = Color(0xFFE53935),
@@ -477,24 +473,56 @@ private fun TelaJogar(
             }
         }
 
-        // Avatar
+        // Indicador de turno
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            val estadoAvatar = runCatching {
-                EstadoAvatar.valueOf(uiState.estadoAvatar)
-            }.getOrDefault(EstadoAvatar.NEUTRO)
-            Text(
-                text = when (estadoAvatar) {
-                    EstadoAvatar.NEUTRO  -> "🤔"
-                    EstadoAvatar.ACERTOU -> "😄"
-                    EstadoAvatar.ERROU   -> "😬"
-                    EstadoAvatar.VITORIA -> "🏆"
-                    EstadoAvatar.DERROTA -> "😢"
-                },
-                fontSize = 64.sp
-            )
+            if (uiState.meuTurno) {
+                Text("🟢 Seu turno!", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold)
+            } else {
+                Text("⏳ Vez do oponente...", color = Color.White.copy(alpha = 0.6f))
+            }
+        }
+
+        // Timer visual
+        if (uiState.meuTurno && uiState.timerAtivo) {
+            val corTimer = when {
+                uiState.timerSegundos <= 5  -> Color(0xFFE53935)
+                uiState.timerSegundos <= 10 -> Color(0xFFFF9800)
+                else                        -> Color(0xFF4CAF50)
+            }
+            CardCartoon(modifier = Modifier.fillMaxWidth(), padding = 8.dp) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("⏱", fontSize = 16.sp)
+                    Text(
+                        " ${uiState.timerSegundos}s",
+                        color = corTimer,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+                LinearProgressIndicator(
+                    progress = {
+                        val max = when (uiState.dificuldade) {
+                            Dificuldade.FACIL   -> 30f
+                            Dificuldade.NORMAL  -> 20f
+                            Dificuldade.DIFICIL -> 10f
+                        }
+                        uiState.timerSegundos / max
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp),
+                    color      = corTimer,
+                    trackColor = Color.White.copy(alpha = 0.2f)
+                )
+            }
         }
 
         // Meu progresso
@@ -503,7 +531,9 @@ private fun TelaJogar(
                 ProgressoPalavra(progresso = uiState.progresso)
             } else {
                 Box(
-                    modifier = Modifier.fillMaxWidth().height(40.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = Color(0xFF6C63FF), modifier = Modifier.size(24.dp))
@@ -570,7 +600,8 @@ private fun TelaJogar(
         TecladoLetras(
             letrasCorretas = uiState.letrasCorretas,
             letrasErradas  = uiState.letrasErradas,
-            onLetraClick   = { if (!uiState.terminei) onLetra(it) },
+            onLetraClick   = { if (uiState.meuTurno) onLetra(it) },
+            habilitado     = uiState.meuTurno && !uiState.terminei,
             modifier       = Modifier.fillMaxWidth()
         )
     }

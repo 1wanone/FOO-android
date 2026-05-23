@@ -18,7 +18,8 @@ fun TecladoLetras(
     letrasCorretas: Set<Char>,
     letrasErradas: Set<Char>,
     onLetraClick: (Char) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    habilitado: Boolean = true
 ) {
     Column(
         modifier = modifier,
@@ -34,9 +35,10 @@ fun TecladoLetras(
                         else              -> EstadoLetra.DISPONIVEL
                     }
                     BotaoLetraCartoon(
-                        letra = letra,
-                        estado = estado,
-                        onClick = { onLetraClick(letra) }
+                        letra      = letra,
+                        estado     = estado,
+                        onClick    = { onLetraClick(letra) },
+                        habilitado = habilitado
                     )
                 }
             }

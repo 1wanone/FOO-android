@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +39,11 @@ data class MultiplayerUiState(
     // Estado do oponente (vindo do Firestore)
     val progressoOponente: String = "",
     val tentativasOponente: Int = 6,
+    // Turno
+    val turnoAtual: Int = 1,
+    val meuTurno: Boolean = false,
+    val timerSegundos: Int = 20,
+    val timerAtivo: Boolean = false,
     // Resultado
     val euVenci: Boolean = false,
     val palavraFinal: String = ""
@@ -51,6 +57,7 @@ class MultiplayerViewModel @Inject constructor(
     private val auth = FirebaseAuth.getInstance()
     private val jogoDaForca = JogoDaForca()
     private var partida: Partida? = null
+    private var timerJob: Job? = null
 
     private val _uiState = MutableStateFlow(MultiplayerUiState())
     val uiState: StateFlow<MultiplayerUiState> = _uiState.asStateFlow()
@@ -77,17 +84,17 @@ class MultiplayerViewModel @Inject constructor(
                 onSuccess = { dados ->
                     val salaId = dados["id"].toString()
                     _uiState.value = _uiState.value.copy(
-                        carregando        = false,
-                        salaId            = salaId,
-                        codigoSala        = dados["codigo"].toString(),
-                        jogadorNumero     = 1,
-                        jogador1Nome      = nome,
-                        tema              = tema.nome,
-                        dificuldade       = dificuldade,
-                        palavraFinal      = palavra.texto,
+                        carregando          = false,
+                        salaId              = salaId,
+                        codigoSala          = dados["codigo"].toString(),
+                        jogadorNumero       = 1,
+                        jogador1Nome        = nome,
+                        tema                = tema.nome,
+                        dificuldade         = dificuldade,
+                        palavraFinal        = palavra.texto,
                         tentativasRestantes = dificuldade.tentativasMaximas,
                         tentativasOponente  = dificuldade.tentativasMaximas,
-                        tela              = TelaMultiplayer.AGUARDAR
+                        tela                = TelaMultiplayer.AGUARDAR
                     )
                     escutarSala(salaId, palavra.texto, dificuldade)
                 },
@@ -165,24 +172,42 @@ class MultiplayerViewModel @Inject constructor(
                         tela = TelaMultiplayer.JOGAR
                     )
                     iniciarPartidaLocal(palavraTexto, dif)
+                    iniciarTimer() // Jogador 1 sempre começa
                 }
 
+                // Turno atual
+                val turnoAnterior = _uiState.value.turnoAtual
+                val turnoAtual = (dados["turnoAtual"] as? Long)?.toInt() ?: 1
+                val meuTurno = turnoAtual == _uiState.value.jogadorNumero
+
                 // Sincronizar estado do oponente
-                val progressoOp   = dados["progresso$numOponente"]?.toString() ?: ""
-                val tentativasOp  = (dados["tentativas$numOponente"] as? Long)?.toInt()
+                val progressoOp  = dados["progresso$numOponente"]?.toString() ?: ""
+                val tentativasOp = (dados["tentativas$numOponente"] as? Long)?.toInt()
                     ?: dif.tentativasMaximas
 
                 _uiState.value = _uiState.value.copy(
+                    turnoAtual         = turnoAtual,
+                    meuTurno           = meuTurno,
                     progressoOponente  = progressoOp,
                     tentativasOponente = tentativasOp
                 )
 
+                // Quando o turno muda, reinicia o timer
+                if (turnoAtual != turnoAnterior && _uiState.value.tela == TelaMultiplayer.JOGAR) {
+                    if (meuTurno && !_uiState.value.terminei) {
+                        iniciarTimer()
+                    } else {
+                        cancelarTimer()
+                    }
+                }
+
                 // Resultado final
                 if (status == "finalizada" && _uiState.value.tela == TelaMultiplayer.JOGAR) {
+                    cancelarTimer()
                     val vencedorId = dados["vencedor"]?.toString() ?: ""
                     _uiState.value = _uiState.value.copy(
-                        tela     = TelaMultiplayer.RESULTADO,
-                        euVenci  = vencedorId == auth.currentUser?.uid
+                        tela    = TelaMultiplayer.RESULTADO,
+                        euVenci = vencedorId == auth.currentUser?.uid
                     )
                 }
             }
@@ -203,35 +228,73 @@ class MultiplayerViewModel @Inject constructor(
     fun tentarLetra(letra: Char) {
         val p = partida ?: return
         if (p.terminou()) return
+        if (!_uiState.value.meuTurno) return
+
         val acertou = p.tentativa(letra)
         atualizarEstadoLocal()
 
-        // Avatar temporário — só muda se o jogo não terminou
-        if (!_uiState.value.terminei) {
-            viewModelScope.launch {
-                _uiState.value = _uiState.value.copy(
-                    estadoAvatar = if (acertou) "ACERTOU" else "ERROU"
-                )
-                delay(800L)
-                if (!_uiState.value.terminei) {
-                    _uiState.value = _uiState.value.copy(estadoAvatar = "NEUTRO")
-                }
-            }
-        }
-
         val salaId = _uiState.value.salaId
         val num    = _uiState.value.jogadorNumero
+
         viewModelScope.launch {
             firestoreRepository.atualizarProgressoSala(
-                salaId       = salaId,
-                numero       = num,
-                progresso    = p.getProgresso(),
-                tentativas   = p.getTentativasRestantes(),
+                salaId        = salaId,
+                numero        = num,
+                progresso     = p.getProgresso(),
+                tentativas    = p.getTentativasRestantes(),
                 letrasErradas = p.getLetrasErradas().joinToString("")
             )
-            if (p.venceu()) {
-                firestoreRepository.finalizarSala(salaId, auth.currentUser?.uid ?: "")
+
+            when {
+                p.venceu() -> {
+                    cancelarTimer()
+                    firestoreRepository.finalizarSala(salaId, auth.currentUser?.uid ?: "")
+                }
+                p.terminou() -> {
+                    // Acabaram as tentativas — passa a vez definitivamente
+                    cancelarTimer()
+                    val proximo = if (num == 1) 2 else 1
+                    firestoreRepository.passarTurno(salaId, proximo)
+                }
+                !acertou -> {
+                    // Errou — passa a vez
+                    cancelarTimer()
+                    passarVez()
+                }
+                // Acertou — mantém o turno, reinicia timer
+                else -> iniciarTimer()
             }
+        }
+    }
+
+    private fun iniciarTimer() {
+        timerJob?.cancel()
+        val segundos = when (_uiState.value.dificuldade) {
+            Dificuldade.FACIL   -> 30
+            Dificuldade.NORMAL  -> 20
+            Dificuldade.DIFICIL -> 10
+        }
+        _uiState.value = _uiState.value.copy(timerSegundos = segundos, timerAtivo = true)
+        timerJob = viewModelScope.launch {
+            for (i in segundos downTo 1) {
+                _uiState.value = _uiState.value.copy(timerSegundos = i)
+                delay(1000)
+            }
+            if (!_uiState.value.terminei) {
+                passarVez()
+            }
+        }
+    }
+
+    private fun cancelarTimer() {
+        timerJob?.cancel()
+        _uiState.value = _uiState.value.copy(timerAtivo = false)
+    }
+
+    private fun passarVez() {
+        val proximoTurno = if (_uiState.value.turnoAtual == 1) 2 else 1
+        viewModelScope.launch {
+            firestoreRepository.passarTurno(_uiState.value.salaId, proximoTurno)
         }
     }
 
@@ -254,6 +317,7 @@ class MultiplayerViewModel @Inject constructor(
     }
 
     fun reiniciar() {
+        timerJob?.cancel()
         partida = null
         _uiState.value = MultiplayerUiState()
     }

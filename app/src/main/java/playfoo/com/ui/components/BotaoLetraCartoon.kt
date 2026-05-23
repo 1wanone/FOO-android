@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -24,8 +25,7 @@ fun BotaoLetraCartoon(
     estado: EstadoLetra,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    // SLOTS DE ASSET — um painter para cada estado
-    // Exemplo: assetDisponivel = painterResource(R.drawable.tecla_normal)
+    habilitado: Boolean = true,
     assetDisponivel: Painter? = null,
     assetCorreta: Painter? = null,
     assetErrada: Painter? = null
@@ -45,15 +45,16 @@ fun BotaoLetraCartoon(
         EstadoLetra.CORRETA    -> assetCorreta
         EstadoLetra.ERRADA     -> assetErrada
     }
-    val habilitado = estado == EstadoLetra.DISPONIVEL
+    val podeClicar = habilitado && estado == EstadoLetra.DISPONIVEL
 
     Box(
         modifier = modifier
             .size(36.dp)
+            .alpha(if (!habilitado) 0.5f else 1f)
             .shadow(3.dp, RoundedCornerShape(8.dp))
             .clip(RoundedCornerShape(8.dp))
             .background(corSombra)
-            .clickable(enabled = habilitado, onClick = onClick),
+            .clickable(enabled = podeClicar, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         if (assetAtual != null) {
