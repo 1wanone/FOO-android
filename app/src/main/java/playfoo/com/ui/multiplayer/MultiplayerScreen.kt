@@ -177,7 +177,7 @@ private fun TelaInicial(
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Sistema de turnos alternados.\nQuem revelar a palavra primeiro vence!",
+            text = "Ambos jogam a MESMA palavra em turnos.\nQuem revelar a palavra completa primeiro vence!",
             color = Color.White.copy(alpha = 0.7f),
             fontSize = 14.sp,
             textAlign = TextAlign.Center
@@ -243,17 +243,15 @@ private fun TelaCriar(
                         onClick  = { dificuldadeSelecionada = dif },
                         colors   = RadioButtonDefaults.colors(selectedColor = Color(0xFF6C63FF))
                     )
-                    Column {
-                        Text(
-                            text = when (dif) {
-                                Dificuldade.FACIL   -> "Fácil  — ${dif.tentativasMaximas} tentativas, 30s/turno"
-                                Dificuldade.NORMAL  -> "Normal — ${dif.tentativasMaximas} tentativas, 20s/turno"
-                                Dificuldade.DIFICIL -> "Difícil — ${dif.tentativasMaximas} tentativas, 10s/turno"
-                            },
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
+                    Text(
+                        text = when (dif) {
+                            Dificuldade.FACIL   -> "Fácil  — ${dif.tentativasMaximas} tentativas, 30s/turno"
+                            Dificuldade.NORMAL  -> "Normal — ${dif.tentativasMaximas} tentativas, 20s/turno"
+                            Dificuldade.DIFICIL -> "Difícil — ${dif.tentativasMaximas} tentativas, 10s/turno"
+                        },
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
         }
@@ -364,10 +362,7 @@ private fun TelaEntrar(
             OutlinedTextField(
                 value         = codigo,
                 onValueChange = {
-                    if (it.length <= 6) {
-                        codigo = it.uppercase()
-                        onLimparErro()
-                    }
+                    if (it.length <= 6) { codigo = it.uppercase(); onLimparErro() }
                 },
                 modifier      = Modifier.fillMaxWidth(),
                 label         = { Text("Código de 6 dígitos", color = Color.White.copy(alpha = 0.7f)) },
@@ -412,7 +407,8 @@ private fun TelaJogar(
     uiState: MultiplayerUiState,
     onLetra: (Char) -> Unit
 ) {
-    val maxTentativas = uiState.dificuldade.tentativasMaximas
+    val maxTentativas     = uiState.dificuldade.tentativasMaximas
+    val todasLetrasErradas = uiState.letrasErradasEu + uiState.letrasErradasOponente
 
     Column(
         modifier = Modifier
@@ -421,7 +417,7 @@ private fun TelaJogar(
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Header
+        // Header: tema + dificuldade
         CardCartoon(modifier = Modifier.fillMaxWidth(), padding = 10.dp) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -444,53 +440,6 @@ private fun TelaJogar(
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.bodySmall
                 )
-            }
-        }
-
-        // Placar lado a lado
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            CardCartoon(
-                modifier = Modifier.weight(1f),
-                corBorda = Color(0xFF2196F3),
-                padding  = 10.dp
-            ) {
-                Text(
-                    text = if (uiState.jogadorNumero == 1) uiState.jogador1Nome else uiState.jogador2Nome,
-                    color = Color(0xFF2196F3),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                    maxLines = 1
-                )
-                Text(
-                    text = "Você",
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 11.sp
-                )
-                Spacer(Modifier.height(4.dp))
-                CoracoesRow(restantes = uiState.tentativasRestantes, maximas = maxTentativas)
-            }
-            CardCartoon(
-                modifier = Modifier.weight(1f),
-                corBorda = Color(0xFFE53935),
-                padding  = 10.dp
-            ) {
-                Text(
-                    text = if (uiState.jogadorNumero == 1) uiState.jogador2Nome else uiState.jogador1Nome,
-                    color = Color(0xFFE53935),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                    maxLines = 1
-                )
-                Text(
-                    text = "Oponente",
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 11.sp
-                )
-                Spacer(Modifier.height(4.dp))
-                CoracoesRow(restantes = uiState.tentativasOponente, maximas = maxTentativas)
             }
         }
 
@@ -537,24 +486,59 @@ private fun TelaJogar(
                         }
                         uiState.timerSegundos / max
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp),
+                    modifier   = Modifier.fillMaxWidth().height(6.dp),
                     color      = corTimer,
                     trackColor = Color.White.copy(alpha = 0.2f)
                 )
             }
         }
 
-        // Meu progresso
+        // Placar lado a lado (vidas independentes)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            CardCartoon(
+                modifier = Modifier.weight(1f),
+                corBorda = Color(0xFF2196F3),
+                padding  = 10.dp
+            ) {
+                Text(
+                    text = if (uiState.jogadorNumero == 1) uiState.jogador1Nome else uiState.jogador2Nome,
+                    color = Color(0xFF2196F3),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    maxLines = 1
+                )
+                Text("Você", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                Spacer(Modifier.height(4.dp))
+                CoracoesRow(restantes = uiState.tentativasEu, maximas = maxTentativas)
+            }
+            CardCartoon(
+                modifier = Modifier.weight(1f),
+                corBorda = Color(0xFFE53935),
+                padding  = 10.dp
+            ) {
+                Text(
+                    text = if (uiState.jogadorNumero == 1) uiState.jogador2Nome else uiState.jogador1Nome,
+                    color = Color(0xFFE53935),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    maxLines = 1
+                )
+                Text("Oponente", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                Spacer(Modifier.height(4.dp))
+                CoracoesRow(restantes = uiState.tentativasOponente, maximas = maxTentativas)
+            }
+        }
+
+        // UMA palavra compartilhada
         CardCartoon(modifier = Modifier.fillMaxWidth(), padding = 12.dp) {
             if (uiState.progresso.isNotBlank()) {
                 ProgressoPalavra(progresso = uiState.progresso)
             } else {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(40.dp),
+                    modifier = Modifier.fillMaxWidth().height(40.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = Color(0xFF6C63FF), modifier = Modifier.size(24.dp))
@@ -562,38 +546,7 @@ private fun TelaJogar(
             }
         }
 
-        // Progresso do oponente (menor)
-        if (uiState.progressoOponente.isNotBlank()) {
-            CardCartoon(
-                modifier = Modifier.fillMaxWidth(),
-                corBorda = Color(0xFFE53935).copy(alpha = 0.5f),
-                padding  = 8.dp
-            ) {
-                Text(
-                    text = "Oponente:",
-                    color = Color(0xFFE53935).copy(alpha = 0.8f),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    uiState.progressoOponente.split(" ").forEach { c ->
-                        Text(
-                            text = c,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 3.dp),
-                            color = if (c == "_") Color.White.copy(alpha = 0.3f) else Color.White
-                        )
-                    }
-                }
-            }
-        }
-
-        // Aguardando resultado
+        // Sem tentativas — aguardando resultado
         if (uiState.terminei) {
             CardCartoon(modifier = Modifier.fillMaxWidth(), corBorda = Color(0xFFFF9800)) {
                 Column(
@@ -601,7 +554,7 @@ private fun TelaJogar(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = if (uiState.venci) "🎉 Você revelou a palavra!" else "💀 Sem tentativas!",
+                        text = "💀 Sem tentativas!",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
@@ -617,10 +570,10 @@ private fun TelaJogar(
             }
         }
 
-        // Teclado
+        // Teclado compartilhado: verdes = reveladas, vermelhas = erros de ambos
         TecladoLetras(
-            letrasCorretas = uiState.letrasCorretas,
-            letrasErradas  = uiState.letrasErradas,
+            letrasCorretas = uiState.letrasReveladas,
+            letrasErradas  = todasLetrasErradas,
             onLetraClick   = { if (uiState.meuTurno) onLetra(it) },
             habilitado     = uiState.meuTurno && !uiState.terminei,
             modifier       = Modifier.fillMaxWidth()
@@ -665,10 +618,7 @@ private fun TelaResultado(
             textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(8.dp))
-        Text(
-            text = "A palavra era:",
-            color = Color.White.copy(alpha = 0.7f)
-        )
+        Text("A palavra era:", color = Color.White.copy(alpha = 0.7f))
         Text(
             text = palavraFinal,
             color = Color.White,

@@ -237,15 +237,15 @@ class FirestoreRepository @Inject constructor() {
             "tema"          to tema,
             "palavra"       to palavra,
             "dificuldade"   to dificuldade,
-            "status"        to "aguardando",
-            "turnoAtual"    to 1,
-            "progresso1"    to "",
-            "progresso2"    to "",
-            "tentativas1"   to 0,
-            "tentativas2"   to 0,
-            "letrasErradas1" to "",
-            "letrasErradas2" to "",
-            "vencedor"      to null,
+            "status"          to "aguardando",
+            "turnoAtual"      to 1,
+            "letrasReveladas" to "",
+            "progresso"       to "",
+            "tentativas1"     to null,
+            "tentativas2"     to null,
+            "letrasErradas1"  to "",
+            "letrasErradas2"  to "",
+            "vencedor"        to null,
             "timestamp"     to com.google.firebase.firestore.FieldValue.serverTimestamp()
         )
         val doc = db.collection("salas").add(sala).await()
@@ -311,6 +311,52 @@ class FirestoreRepository @Inject constructor() {
             mapOf(
                 "status"   to "finalizada",
                 "vencedor" to vencedorId
+            )
+        ).await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    suspend fun revelarLetra(
+        salaId: String,
+        novoProgresso: String,
+        letrasReveladas: String,
+        jogadorNumero: Int,
+        tentativas: Int,
+        letrasErradas: String
+    ): Result<Unit> = try {
+        db.collection("salas").document(salaId).update(
+            mapOf(
+                "letrasReveladas"           to letrasReveladas,
+                "progresso"                 to novoProgresso,
+                "tentativas$jogadorNumero"  to tentativas,
+                "letrasErradas$jogadorNumero" to letrasErradas
+            )
+        ).await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    suspend fun reiniciarSala(
+        salaId: String,
+        novaPalavra: String,
+        novoTema: String
+    ): Result<Unit> = try {
+        val delete = com.google.firebase.firestore.FieldValue.delete()
+        db.collection("salas").document(salaId).update(
+            mapOf(
+                "palavra"         to novaPalavra,
+                "tema"            to novoTema,
+                "status"          to "jogando",
+                "letrasReveladas" to "",
+                "progresso"       to "",
+                "tentativas1"     to delete,
+                "tentativas2"     to delete,
+                "letrasErradas1"  to "",
+                "letrasErradas2"  to "",
+                "turnoAtual"      to 1
             )
         ).await()
         Result.success(Unit)
