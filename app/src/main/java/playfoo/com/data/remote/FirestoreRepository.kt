@@ -246,7 +246,8 @@ class FirestoreRepository @Inject constructor() {
             "letrasErradas1"  to "",
             "letrasErradas2"  to "",
             "vencedor"        to null,
-            "timestamp"     to com.google.firebase.firestore.FieldValue.serverTimestamp()
+            "versao"          to com.google.firebase.firestore.FieldValue.serverTimestamp(),
+            "timestamp"       to com.google.firebase.firestore.FieldValue.serverTimestamp()
         )
         val doc = db.collection("salas").add(sala).await()
         Result.success(mapOf("id" to doc.id, "codigo" to codigo))
@@ -356,7 +357,8 @@ class FirestoreRepository @Inject constructor() {
                 "tentativas2"     to delete,
                 "letrasErradas1"  to "",
                 "letrasErradas2"  to "",
-                "turnoAtual"      to 1
+                "turnoAtual"      to 1,
+                "versao"          to com.google.firebase.firestore.FieldValue.serverTimestamp()
             )
         ).await()
         Result.success(Unit)
