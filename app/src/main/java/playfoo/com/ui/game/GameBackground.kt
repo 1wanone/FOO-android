@@ -13,34 +13,31 @@ import playfoo.com.ui.game.components.AvatarView
 import playfoo.com.ui.game.components.EstadoAvatar
 
 /**
- * Cenário do jogo dividido em duas faixas verticais:
+ * Análise pixel a pixel (2500px de largura, escalonado por fillMaxWidth):
  *
- *  ┌─────────────────┐  ← topo da tela
- *  │                 │
- *  │   fundo_jogo    │  faixa CENÁRIO (cenariaFraction da altura)
- *  │  (fundo livre)  │
- *  │                 │
- *  │ [cadeira][avtr] │  ← parte inferior do cenário
- *  │ [mesa_pc cover] │  ← mesa sobrepõe cintura do avatar
- *  ├─────────────────┤
- *  │   (teclado)     │  faixa TECLADO — GameBackground não renderiza aqui
- *  └─────────────────┘
+ * mesa_pc_crop.png (2500×1240):
+ *   - versão cropada da mesa_pc.png, sem os 61.3% de transparência no topo
+ *   - conteúdo real começa na linha 0 → frame inteiro é conteúdo visível
+ *   - com fillMaxWidth(0.80f) na tela de 360px: 288×142px
+ *   - topo da mesa fica a 142px do fundo da área de cenário ✓
  *
- *  cenariaFraction = 1f - tecladoFraction
- *  O truque: usamos Column com peso para separar as duas faixas.
- *  Dentro da faixa do cenário, usamos Box com align — sem offset.
+ * avatar layers (2500×3000):
+ *   - com fillMaxWidth(0.80f): 288×345px
+ *   - cabeça em 35.7% → y=123px do topo do frame
+ *   - cintura em 66.3% → y=229px do topo do frame = 116px do fundo
+ *   - a mesa (topo em 142px do fundo) cobre da cintura para baixo ✓
+ *
+ * cadeira.png NÃO existe no repositório.
  */
 @Composable
 fun GameBackground(
     avatarConfig: AvatarConfig = AvatarConfig(),
     estado: EstadoAvatar = EstadoAvatar.NEUTRO,
-    // Fração da tela que o teclado ocupa (padrão ≈ 136dp em ~700dp = ~0.19)
-    tecladoFraction: Float = 0.20f,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
 
-        // Fundo cobre TELA TODA (inclusive área do teclado)
+        // 1. Fundo — Crop garante que cobre a tela toda sem distorção
         Image(
             painter = painterResource(R.drawable.fundo_jogo),
             contentDescription = null,
@@ -48,66 +45,27 @@ fun GameBackground(
             contentScale = ContentScale.Crop
         )
 
-        // Divide a tela em [cenário | espaço teclado]
-        Column(modifier = Modifier.fillMaxSize()) {
+        // 2. Avatar — layers compostas pela AvatarView
+        //    fillMaxWidth(0.80f) + FillWidth + BottomCenter
+        //    Frame: 288×345px, cintura em 116px do fundo
+        AvatarView(
+            config = avatarConfig,
+            estado = estado,
+            modifier = Modifier
+                .fillMaxWidth(0.80f)
+                .align(Alignment.BottomCenter)
+        )
 
-            // ── FAIXA DO CENÁRIO ──────────────────────────────────────────
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f - tecladoFraction)
-            ) {
-                // Nada aqui — o fundo já está no Box pai
-            }
-
-            // ── FAIXA ONDE FICAM CENÁRIO + PERSONAGEM ────────────────────
-            // Usa a faixa inferior do cenário (não a do teclado!)
-            // As camadas do personagem ficam neste Box, alinhadas ao Bottom
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(tecladoFraction * 2.5f)  // ~50% da tela para mesa+personagem
-            ) {
-                // 1. Cadeira — atrás do personagem
-                Image(
-                    painter = painterResource(R.drawable.cadeira),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth(0.55f)
-                        .fillMaxHeight(0.95f)
-                        .align(Alignment.BottomCenter),
-                    contentScale = ContentScale.Fit
-                )
-
-                // 2. Avatar — na frente da cadeira
-                AvatarView(
-                    config = avatarConfig,
-                    estado = estado,
-                    modifier = Modifier
-                        .fillMaxWidth(0.52f)
-                        .fillMaxHeight()
-                        .align(Alignment.BottomCenter)
-                )
-
-                // 3. Mesa — NA FRENTE do avatar (renderiza por cima)
-                //    Cobre a parte inferior do corpo criando ilusão de sentar
-                Image(
-                    painter = painterResource(R.drawable.mesa_pc),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(0.42f)
-                        .align(Alignment.BottomCenter),
-                    contentScale = ContentScale.FillWidth
-                )
-            }
-
-            // ── FAIXA DO TECLADO — apenas espaço reservado ───────────────
-            Spacer(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(tecladoFraction)
-            )
-        }
+        // 3. Mesa (versão cropada — sem transparência extra no topo)
+        //    Mesma largura e alinhamento do avatar
+        //    Frame: 288×142px, topo em 142px do fundo → cobre cintura ✓
+        Image(
+            painter = painterResource(R.drawable.mesa_pc_crop),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxWidth(0.80f)
+                .align(Alignment.BottomCenter),
+            contentScale = ContentScale.FillWidth
+        )
     }
 }
