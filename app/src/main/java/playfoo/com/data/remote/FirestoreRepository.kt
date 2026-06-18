@@ -396,7 +396,8 @@ class FirestoreRepository @Inject constructor() {
             "avatar_tonDePele" to avatarConfig.tonDePele,
             "avatar_cabelo"    to avatarConfig.cabelo,
             "avatar_corCabelo" to avatarConfig.corCabelo,
-            "avatar_camisa"    to avatarConfig.camisa
+            "avatar_camisa"    to avatarConfig.camisa,
+            "avatar_corCamisa" to avatarConfig.corCamisa
         )).await()
         Result.success(Unit)
     } catch (e: Exception) {
@@ -405,7 +406,8 @@ class FirestoreRepository @Inject constructor() {
                 "avatar_tonDePele" to avatarConfig.tonDePele,
                 "avatar_cabelo"    to avatarConfig.cabelo,
                 "avatar_corCabelo" to avatarConfig.corCabelo,
-                "avatar_camisa"    to avatarConfig.camisa
+                "avatar_camisa"    to avatarConfig.camisa,
+                "avatar_corCamisa" to avatarConfig.corCamisa
             ), com.google.firebase.firestore.SetOptions.merge()).await()
             Result.success(Unit)
         } catch (e2: Exception) {
@@ -420,7 +422,8 @@ class FirestoreRepository @Inject constructor() {
                 tonDePele = doc.getString("avatar_tonDePele") ?: "medio",
                 cabelo    = doc.getString("avatar_cabelo")    ?: "curto",
                 corCabelo = doc.getString("avatar_corCabelo") ?: "preto",
-                camisa    = doc.getString("avatar_camisa")    ?: "maniva"
+                camisa    = doc.getString("avatar_camisa")    ?: "maniva",
+                corCamisa = doc.getString("avatar_corCamisa") ?: "preto"
             )
             Result.success(config)
         } else {

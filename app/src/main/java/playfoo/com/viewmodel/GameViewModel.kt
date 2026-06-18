@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.google.firebase.auth.FirebaseAuth
 import playfoo.com.data.TemaDataSource
+import playfoo.com.data.local.AvatarPreferences
 import playfoo.com.data.local.JogadorPreferences
 import playfoo.com.data.remote.FirestoreRepository
 import playfoo.com.domain.*
@@ -28,7 +29,8 @@ data class GameUiState(
     val palavra: String = "",
     val dificuldade: Dificuldade = Dificuldade.NORMAL,
     val resultado: ResultadoJogo = ResultadoJogo.EM_ANDAMENTO,
-    val timerSegundos: Int? = null
+    val timerSegundos: Int? = null,
+    val avatarConfig: AvatarConfig = AvatarConfig()
 )
 
 enum class ResultadoJogo { EM_ANDAMENTO, VITORIA, DERROTA }
@@ -37,6 +39,7 @@ enum class ResultadoJogo { EM_ANDAMENTO, VITORIA, DERROTA }
 class GameViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val jogadorPrefs: JogadorPreferences,
+    private val avatarPrefs: AvatarPreferences,
     private val firestoreRepository: FirestoreRepository
 ) : ViewModel() {
 
@@ -99,7 +102,8 @@ class GameViewModel @Inject constructor(
             tema                = partida.tema.nome,
             palavra             = partida.palavra.texto,
             dificuldade         = partida.dificuldade,
-            timerSegundos       = dificuldade.tempoSegundos
+            timerSegundos       = dificuldade.tempoSegundos,
+            avatarConfig        = avatarPrefs.load()
         )
         iniciarTimer()
     }

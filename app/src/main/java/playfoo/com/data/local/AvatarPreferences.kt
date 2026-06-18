@@ -13,7 +13,8 @@ class AvatarPreferences @Inject constructor(
         tonDePele = prefs.getString("tom_pele", "medio") ?: "medio",
         cabelo    = prefs.getString("cabelo", "curto") ?: "curto",
         corCabelo = prefs.getString("cor_cabelo", "preto") ?: "preto",
-        camisa    = prefs.getString("camisa", "maniva") ?: "maniva"
+        camisa    = prefs.getString("camisa", "maniva") ?: "maniva",
+        corCamisa = prefs.getString("cor_camisa", "preto") ?: "preto"
     )
 
     fun save(config: AvatarConfig) {
@@ -22,6 +23,7 @@ class AvatarPreferences @Inject constructor(
             .putString("cabelo", config.cabelo)
             .putString("cor_cabelo", config.corCabelo)
             .putString("camisa", config.camisa)
+            .putString("cor_camisa", config.corCamisa)
             .apply()
     }
 }

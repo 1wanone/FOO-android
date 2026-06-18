@@ -11,12 +11,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,9 +30,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
-import playfoo.com.domain.AvatarConfig
 import playfoo.com.domain.TipoUsuario
 import playfoo.com.ui.components.BotaoCartoon
 import playfoo.com.ui.components.BotaoCartoonTipo
@@ -38,6 +45,7 @@ import playfoo.com.ui.components.NavItem
 import playfoo.com.ui.components.TipoFundo
 import playfoo.com.ui.game.components.AvatarView
 import playfoo.com.ui.game.components.EstadoAvatar
+import playfoo.com.viewmodel.MenuViewModel
 
 private val navItems = listOf(
     NavItem("🏠", "Início", "menu"),
@@ -49,12 +57,24 @@ private val navItems = listOf(
 @Composable
 fun MenuScreen(
     navController: NavController,
-    tipo: String = TipoUsuario.ALUNO
+    tipo: String = TipoUsuario.ALUNO,
+    viewModel: MenuViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
     val auth = remember { FirebaseAuth.getInstance() }
     val nomeUsuario = auth.currentUser?.displayName
         ?: auth.currentUser?.email?.substringBefore('@')
         ?: "Jogador"
+
+    // Recarrega avatar toda vez que a tela volta ao foco
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.recarregar()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     FundoTela(tipo = TipoFundo.MENU) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -86,20 +106,22 @@ fun MenuScreen(
 
                 Spacer(Modifier.height(20.dp))
 
-                // Avatar em destaque
+                // Avatar em destaque — carregado do ViewModel
                 Box(
                     modifier = Modifier
-                        .size(180.dp)
+                        .size(120.dp)
                         .shadow(16.dp, CircleShape)
                         .clip(CircleShape)
                         .border(3.dp, Color(0xFF6C63FF), CircleShape)
-                        .background(Color(0xFF1E2A3A)),
+                        .background(Color(0xFF1A1A2E)),
                     contentAlignment = Alignment.Center
                 ) {
                     AvatarView(
-                        config = AvatarConfig(),
+                        config = uiState.avatarConfig,
                         estado = EstadoAvatar.NEUTRO,
-                        modifier = Modifier.size(160.dp)
+                        modifier = Modifier
+                            .fillMaxSize(0.95f)
+                            .offset(y = 8.dp)
                     )
                 }
 

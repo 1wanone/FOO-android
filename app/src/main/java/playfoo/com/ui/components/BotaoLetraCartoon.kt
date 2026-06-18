@@ -46,11 +46,13 @@ fun BotaoLetraCartoon(
         EstadoLetra.ERRADA     -> assetErrada
     }
     val podeClicar = habilitado && estado == EstadoLetra.DISPONIVEL
+    // Apenas letras ainda disponíveis ficam semi-transparentes quando o teclado está desativado
+    val alpha = if (!habilitado && estado == EstadoLetra.DISPONIVEL) 0.5f else 1f
 
     Box(
         modifier = modifier
             .size(36.dp)
-            .alpha(if (!habilitado) 0.5f else 1f)
+            .alpha(alpha)
             .shadow(3.dp, RoundedCornerShape(8.dp))
             .clip(RoundedCornerShape(8.dp))
             .background(corSombra)
