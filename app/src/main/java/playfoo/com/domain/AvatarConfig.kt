@@ -4,6 +4,5 @@ data class AvatarConfig(
     val tonDePele: String = "medio",
     val cabelo: String = "curto",
     val corCabelo: String = "preto",
-    val camisa: String = "basica",
-    val corCamisa: String = "azul"
+    val camisa: String = "maniva"
 )

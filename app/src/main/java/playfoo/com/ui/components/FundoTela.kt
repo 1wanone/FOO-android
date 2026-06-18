@@ -16,7 +16,7 @@ enum class TipoFundo { MENU, JOGO, MULTIPLAYER, PERFIL, DASHBOARD, TURMA }
 fun FundoTela(
     modifier: Modifier = Modifier,
     tipo: TipoFundo = TipoFundo.MENU,
-    // SLOT DE ASSET — passar painterResource(R.drawable.fundo_menu) quando pronto
+    // SLOT DE ASSET — passar painterResource(R.drawable.fundo_menu)
     assetPainter: Painter? = null,
     content: @Composable BoxScope.() -> Unit
 ) {

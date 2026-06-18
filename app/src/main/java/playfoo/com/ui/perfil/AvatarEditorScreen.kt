@@ -31,7 +31,9 @@ fun AvatarEditorScreen(
         AvatarView(
             config = config,
             estado = EstadoAvatar.NEUTRO,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
         )
 
         HorizontalDivider()
@@ -44,7 +46,7 @@ fun AvatarEditorScreen(
 
         Text("Cabelo", style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("curto", "longo", "cacheado", "raspado").forEach { cab ->
+            listOf("curto", "liso", "cacheado", "raspado").forEach { cab ->
                 FilterChip(
                     selected = config.cabelo == cab,
                     onClick = { config = config.copy(cabelo = cab) },
@@ -55,7 +57,7 @@ fun AvatarEditorScreen(
 
         Text("Cor do cabelo", style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("preto", "castanho", "loiro", "ruivo", "colorido").forEach { cor ->
+            listOf("preto", "castanho", "loiro", "ruivo").forEach { cor ->
                 FilterChip(
                     selected = config.corCabelo == cor,
                     onClick = { config = config.copy(corCabelo = cor) },
@@ -66,22 +68,11 @@ fun AvatarEditorScreen(
 
         Text("Camisa", style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("basica", "listrada", "uniforme", "moletom").forEach { cam ->
+            listOf("maniva", "divas").forEach { cam ->
                 FilterChip(
                     selected = config.camisa == cam,
                     onClick = { config = config.copy(camisa = cam) },
                     label = { Text(cam) }
-                )
-            }
-        }
-
-        Text("Cor da camisa", style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("azul", "vermelho", "verde", "preto", "branco", "amarelo").forEach { cor ->
-                FilterChip(
-                    selected = config.corCamisa == cor,
-                    onClick = { config = config.copy(corCamisa = cor) },
-                    label = { Text(cor) }
                 )
             }
         }

@@ -249,10 +249,12 @@ private fun CardLogin(
             )
         } else {
             BotaoCartoon(
-                texto = "Entrar",
+                texto = "ENTRAR",
                 onClick = { if (validar()) onLogin(email, senha) },
                 tipo = BotaoCartoonTipo.PRIMARIO,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                altura = 60.dp,
+                fontSize = 18.sp
             )
         }
 
@@ -270,11 +272,13 @@ private fun CardLogin(
         Spacer(Modifier.height(20.dp))
 
         BotaoCartoon(
-            texto = "Entrar com Google",
+            texto = "G  Entrar com Google",
             onClick = onLoginGoogle,
-            tipo = BotaoCartoonTipo.SECUNDARIO,
+            tipo = BotaoCartoonTipo.GOOGLE,
             habilitado = !carregando,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            altura = 60.dp,
+            fontSize = 16.sp
         )
 
         Spacer(Modifier.height(24.dp))
@@ -282,7 +286,7 @@ private fun CardLogin(
         Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
             Text("Não tem conta? ", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium)
             TextButton(onClick = onIrRegistro, contentPadding = PaddingValues(0.dp)) {
-                Text("Cadastre-se", color = Color(0xFF6C63FF), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                Text("Cadastre-se", color = Color(0xFF6C63FF), fontWeight = FontWeight.Bold, fontSize = 15.sp)
             }
         }
     }

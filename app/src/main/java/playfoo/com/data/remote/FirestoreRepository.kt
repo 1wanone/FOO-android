@@ -57,7 +57,7 @@ class FirestoreRepository @Inject constructor() {
         Result.failure(e)
     }
 
-    // Buscar partidas da turma (para dashboard do gestor)
+    // Buscar partidas da turma
     suspend fun getPartidasTurma(turmaId: String): Result<List<Map<String, Any>>> = try {
         android.util.Log.d("DASHBOARD", "Buscando partidas da turma: $turmaId")
         val snapshot = partidas
@@ -382,6 +382,52 @@ class FirestoreRepository @Inject constructor() {
                 snap?.data?.let { trySend(it) }
             }
         awaitClose { listener.remove() }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Avatar
+
+    suspend fun salvarAvatar(
+        userId: String,
+        avatarConfig: playfoo.com.domain.AvatarConfig
+    ): Result<Unit> = try {
+        usuarios.document(userId).update(mapOf(
+            "avatar_tonDePele" to avatarConfig.tonDePele,
+            "avatar_cabelo"    to avatarConfig.cabelo,
+            "avatar_corCabelo" to avatarConfig.corCabelo,
+            "avatar_camisa"    to avatarConfig.camisa
+        )).await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        try {
+            usuarios.document(userId).set(mapOf(
+                "avatar_tonDePele" to avatarConfig.tonDePele,
+                "avatar_cabelo"    to avatarConfig.cabelo,
+                "avatar_corCabelo" to avatarConfig.corCabelo,
+                "avatar_camisa"    to avatarConfig.camisa
+            ), com.google.firebase.firestore.SetOptions.merge()).await()
+            Result.success(Unit)
+        } catch (e2: Exception) {
+            Result.failure(e2)
+        }
+    }
+
+    suspend fun getAvatar(userId: String): Result<playfoo.com.domain.AvatarConfig> = try {
+        val doc = usuarios.document(userId).get().await()
+        if (doc.exists()) {
+            val config = playfoo.com.domain.AvatarConfig(
+                tonDePele = doc.getString("avatar_tonDePele") ?: "medio",
+                cabelo    = doc.getString("avatar_cabelo")    ?: "curto",
+                corCabelo = doc.getString("avatar_corCabelo") ?: "preto",
+                camisa    = doc.getString("avatar_camisa")    ?: "maniva"
+            )
+            Result.success(config)
+        } else {
+            Result.success(playfoo.com.domain.AvatarConfig())
+        }
+    } catch (e: Exception) {
+        Result.success(playfoo.com.domain.AvatarConfig())
     }
 
     // ─────────────────────────────────────────────────────────────────────────

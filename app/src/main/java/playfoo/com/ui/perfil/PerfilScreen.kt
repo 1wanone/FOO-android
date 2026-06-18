@@ -8,6 +8,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +21,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.material.icons.Icons
@@ -146,7 +152,7 @@ private fun ConteudoPerfil(
     ) {
         Spacer(Modifier.height(16.dp))
 
-        // Header
+        // Header compacto com botão voltar
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -162,44 +168,93 @@ private fun ConteudoPerfil(
             )
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(8.dp))
 
-        // Avatar
-        AvatarView(
-            config = uiState.avatarConfig,
-            estado = EstadoAvatar.NEUTRO,
-            modifier = Modifier.size(160.dp)
-        )
+        // Seção do avatar com fundo gradiente
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            corNivel(uiState.nivel).copy(alpha = 0.18f),
+                            Color.Transparent
+                        )
+                    ),
+                    RoundedCornerShape(24.dp)
+                )
+                .padding(vertical = 20.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // Avatar grande com borda colorida
+                Box(
+                    modifier = Modifier
+                        .size(180.dp)
+                        .shadow(16.dp, CircleShape)
+                        .clip(CircleShape)
+                        .border(3.dp, corNivel(uiState.nivel), CircleShape)
+                        .background(Color(0xFF1E2A3A)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AvatarView(
+                        config = uiState.avatarConfig,
+                        estado = EstadoAvatar.NEUTRO,
+                        modifier = Modifier.size(160.dp)
+                    )
+                }
 
-        Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(12.dp))
 
-        Text(
-            text = uiState.nomeUsuario.ifBlank { "Jogador" },
-            style = MaterialTheme.typography.headlineSmall,
-            color = Color.White,
-            fontWeight = FontWeight.Bold
-        )
+                Text(
+                    text = uiState.nomeUsuario.ifBlank { "Jogador" },
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White,
+                    fontWeight = FontWeight.ExtraBold
+                )
 
-        if (uiState.emailUsuario.isNotBlank()) {
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = uiState.emailUsuario,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.55f)
-            )
+                if (uiState.emailUsuario.isNotBlank()) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = uiState.emailUsuario,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.5f)
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                // Badge de nível
+                Box(
+                    modifier = Modifier
+                        .background(
+                            corNivel(uiState.nivel).copy(alpha = 0.22f),
+                            RoundedCornerShape(20.dp)
+                        )
+                        .border(1.5.dp, corNivel(uiState.nivel), RoundedCornerShape(20.dp))
+                        .padding(horizontal = 20.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "⭐ ${uiState.nivel}",
+                        color = corNivel(uiState.nivel),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 14.sp
+                    )
+                }
+
+                Spacer(Modifier.height(14.dp))
+
+                BotaoCartoon(
+                    texto    = "✏  Personalizar Avatar",
+                    onClick  = onPersonalizar,
+                    tipo     = BotaoCartoonTipo.SECUNDARIO,
+                    modifier = Modifier.fillMaxWidth(0.78f),
+                    fontSize = 14.sp
+                )
+            }
         }
 
         Spacer(Modifier.height(16.dp))
-
-        BotaoCartoon(
-            texto    = "Personalizar Avatar",
-            onClick  = onPersonalizar,
-            tipo     = BotaoCartoonTipo.SECUNDARIO,
-            modifier = Modifier.fillMaxWidth(0.78f),
-            fontSize = 14.sp
-        )
-
-        Spacer(Modifier.height(24.dp))
 
         // Turma — diferenciado por tipo de usuário
         if (uiState.tipoUsuario == TipoUsuario.GESTOR) {
@@ -599,10 +654,12 @@ private fun ConteudoPerfil(
 
         if (uiState.usuarioLogado != null) {
             BotaoCartoon(
-                texto    = "Sair",
+                texto    = "🚪  SAIR",
                 onClick  = onLogout,
                 tipo     = BotaoCartoonTipo.PERIGO,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                altura   = 60.dp,
+                fontSize = 17.sp
             )
         } else {
             BotaoCartoon(

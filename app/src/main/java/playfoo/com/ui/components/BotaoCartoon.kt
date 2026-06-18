@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-enum class BotaoCartoonTipo { PRIMARIO, SECUNDARIO, PERIGO, SUCESSO }
+enum class BotaoCartoonTipo { PRIMARIO, SECUNDARIO, PERIGO, SUCESSO, GOOGLE }
 
 @Composable
 fun BotaoCartoon(
@@ -39,12 +39,14 @@ fun BotaoCartoon(
         BotaoCartoonTipo.SECUNDARIO -> Color(0xFF4CAF50)
         BotaoCartoonTipo.PERIGO     -> Color(0xFFE53935)
         BotaoCartoonTipo.SUCESSO    -> Color(0xFF00BCD4)
+        BotaoCartoonTipo.GOOGLE     -> Color(0xFF4285F4)
     }
     val corSombra = when (tipo) {
         BotaoCartoonTipo.PRIMARIO   -> Color(0xFF3D35CC)
         BotaoCartoonTipo.SECUNDARIO -> Color(0xFF2E7D32)
         BotaoCartoonTipo.PERIGO     -> Color(0xFFB71C1C)
         BotaoCartoonTipo.SUCESSO    -> Color(0xFF00838F)
+        BotaoCartoonTipo.GOOGLE     -> Color(0xFF1A73E8)
     }
     val alpha = if (habilitado) 1f else 0.5f
 

@@ -74,6 +74,18 @@ class PerfilViewModel @Inject constructor(
                     )
                 }
 
+            val userId = auth.currentUser?.uid ?: return@launch
+
+            firestoreRepository.getAvatar(userId)
+                .onSuccess { avatarConfig ->
+                    _uiState.value = _uiState.value.copy(avatarConfig = avatarConfig)
+                    avatarPrefs.save(avatarConfig)
+                }
+                .onFailure {
+                    val avatarLocal = avatarPrefs.load()
+                    _uiState.value = _uiState.value.copy(avatarConfig = avatarLocal)
+                }
+
             firestoreRepository.getEstatisticasAluno(usuario.id)
                 .onSuccess { stats ->
                     val total    = (stats["totalPartidas"] as? Int) ?: 0
@@ -131,8 +143,24 @@ class PerfilViewModel @Inject constructor(
     }
 
     fun salvarAvatar(config: AvatarConfig) {
-        avatarPrefs.save(config)
-        _uiState.value = _uiState.value.copy(avatarConfig = config, modoEdicao = false)
+        val userId = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            firestoreRepository.salvarAvatar(userId, config)
+                .onSuccess {
+                    avatarPrefs.save(config)
+                    _uiState.value = _uiState.value.copy(
+                        avatarConfig = config,
+                        modoEdicao   = false
+                    )
+                }
+                .onFailure {
+                    avatarPrefs.save(config)
+                    _uiState.value = _uiState.value.copy(
+                        avatarConfig = config,
+                        modoEdicao   = false
+                    )
+                }
+        }
     }
 
     fun logout() {
