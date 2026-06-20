@@ -8,6 +8,13 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
+data class Aluno(
+    val id: String,
+    val nome: String,
+    val partidas: Int,
+    val vitorias: Int
+)
+
 @Singleton
 class FirestoreRepository @Inject constructor() {
 
@@ -157,6 +164,97 @@ class FirestoreRepository @Inject constructor() {
         else Result.failure(Exception("Usuário não encontrado"))
     } catch (e: Exception) {
         Result.failure(e)
+    }
+
+    suspend fun buscarNomeUsuario(uid: String): String {
+        return try {
+            val doc = usuarios.document(uid).get().await()
+            doc.getString("nome")
+                ?: doc.getString("email")?.substringBefore("@")
+                ?: "Jogador ${uid.take(4)}"
+        } catch (e: Exception) {
+            "Jogador"
+        }
+    }
+
+    suspend fun buscarNomesAlunos(uids: List<String>): Map<String, String> {
+        if (uids.isEmpty()) return emptyMap()
+        return uids.associate { uid -> uid to buscarNomeUsuario(uid) }
+    }
+
+    suspend fun buscarNomeProfessor(turmaId: String): String {
+        return try {
+            val turmaDoc = turmas.document(turmaId).get().await()
+            val gestorId = turmaDoc.getString("gestorId") ?: return "Professor"
+            buscarNomeUsuario(gestorId)
+        } catch (e: Exception) {
+            "Professor"
+        }
+    }
+
+    suspend fun buscarAlunosDaTurma(turmaId: String): List<Aluno> {
+        return try {
+            val turmaDoc = turmas.document(turmaId).get().await()
+            @Suppress("UNCHECKED_CAST")
+            val membrosIds = turmaDoc.get("membros") as? List<String> ?: emptyList()
+
+            membrosIds.mapNotNull { uid ->
+                try {
+                    val userDoc = usuarios.document(uid).get().await()
+                    Aluno(
+                        id       = uid,
+                        nome     = buscarNomeUsuario(uid),
+                        partidas = (userDoc.getLong("partidas") ?: 0L).toInt(),
+                        vitorias = (userDoc.getLong("vitorias") ?: 0L).toInt()
+                    )
+                } catch (e: Exception) {
+                    Aluno(id = uid, nome = "Jogador ${uid.take(4)}", partidas = 0, vitorias = 0)
+                }
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun buscarRankingTurma(turmaId: String): List<playfoo.com.domain.RankingJogador> {
+        val alunos = buscarAlunosDaTurma(turmaId)
+        return alunos
+            .sortedByDescending { it.vitorias }
+            .map { aluno ->
+                playfoo.com.domain.RankingJogador(
+                    id          = aluno.id,
+                    nome        = aluno.nome,
+                    vitorias    = aluno.vitorias,
+                    partidas    = aluno.partidas,
+                    taxaVitoria = if (aluno.partidas > 0)
+                        aluno.vitorias.toFloat() / aluno.partidas * 100f
+                    else 0f
+                )
+            }
+    }
+
+    suspend fun debugUsuario(uid: String) {
+        try {
+            val doc = usuarios.document(uid).get().await()
+            android.util.Log.d("FIRESTORE_DEBUG", "=== Campos do usuário $uid ===")
+            doc.data?.forEach { (key, value) ->
+                android.util.Log.d("FIRESTORE_DEBUG", "  $key = $value")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FIRESTORE_DEBUG", "Erro ao ler usuário: ${e.message}")
+        }
+    }
+
+    suspend fun debugTurma(turmaId: String) {
+        try {
+            val doc = turmas.document(turmaId).get().await()
+            android.util.Log.d("FIRESTORE_DEBUG", "=== Campos da turma $turmaId ===")
+            doc.data?.forEach { (key, value) ->
+                android.util.Log.d("FIRESTORE_DEBUG", "  $key = $value")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FIRESTORE_DEBUG", "Erro ao ler turma: ${e.message}")
+        }
     }
 
     suspend fun getTurmasDoGestor(gestorId: String): Result<List<Map<String, Any>>> = try {

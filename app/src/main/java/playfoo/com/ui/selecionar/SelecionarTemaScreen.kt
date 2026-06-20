@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,10 +19,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -35,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -44,8 +42,11 @@ import androidx.navigation.NavController
 import playfoo.com.domain.Dificuldade
 import playfoo.com.ui.components.BotaoCartoon
 import playfoo.com.ui.components.BotaoCartoonTipo
-import playfoo.com.ui.components.FundoTela
-import playfoo.com.ui.components.TipoFundo
+import playfoo.com.ui.components.FooIcone
+import playfoo.com.ui.components.FooIcones
+import playfoo.com.ui.components.FundoAnimado
+import playfoo.com.ui.components.HeaderFoo
+import playfoo.com.ui.theme.*
 import playfoo.com.viewmodel.SelecionarTemaViewModel
 
 @Composable
@@ -56,36 +57,22 @@ fun SelecionarTemaScreen(
     val uiState by viewModel.uiState.collectAsState()
     var temaIdSelecionado by remember { mutableStateOf<Int?>(null) }
 
-    FundoTela(tipo = TipoFundo.JOGO) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        FundoAnimado()
+        Box(Modifier.fillMaxSize().background(FundoOverlay))
+
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.height(12.dp))
+            HeaderFoo("ESCOLHA O TEMA", onVoltar = { navController.navigateUp() })
 
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                IconButton(onClick = { navController.navigateUp() }) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Voltar",
-                        tint = Color.White
-                    )
-                }
-                Text(
-                    text = "ESCOLHA O TEMA",
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 1.sp
-                )
-            }
-
             Spacer(Modifier.height(8.dp))
 
             // Grid 2 colunas de temas
@@ -94,22 +81,21 @@ fun SelecionarTemaScreen(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 8.dp)
+                contentPadding = PaddingValues(16.dp)
             ) {
                 items(uiState.temas, key = { it.id }) { tema ->
                     CardTema(
-                        emoji = emojiParaTema(tema.nome),
-                        nome = tema.nome,
+                        nome          = tema.nome,
                         quantPalavras = tema.palavras.size,
-                        selecionado = temaIdSelecionado == tema.id,
-                        onClick = { temaIdSelecionado = tema.id }
+                        selecionado   = temaIdSelecionado == tema.id,
+                        onClick       = { temaIdSelecionado = tema.id },
+                        modifier      = Modifier.fillMaxWidth().aspectRatio(1f)
                     )
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
-            // Label dificuldade
             Text(
                 text = "DIFICULDADE",
                 color = Color.White.copy(alpha = 0.6f),
@@ -126,59 +112,67 @@ fun SelecionarTemaScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 BotaoDificuldade(
-                    emoji = "😊",
-                    texto = "FÁCIL",
-                    cor = Color(0xFF4CAF50),
+                    icone       = FooIcones.Facil,
+                    corIcone    = RoxoEscuro,
+                    texto       = "FÁCIL",
+                    cor         = Ciano,
+                    corTexto    = RoxoEscuro,
                     selecionado = uiState.dificuldade == Dificuldade.FACIL,
-                    onClick = { viewModel.selecionarDificuldade(Dificuldade.FACIL) },
-                    modifier = Modifier.weight(1f)
+                    onClick     = { viewModel.selecionarDificuldade(Dificuldade.FACIL) },
+                    modifier    = Modifier.weight(1f)
                 )
                 BotaoDificuldade(
-                    emoji = "😐",
-                    texto = "NORMAL",
-                    cor = Color(0xFFFF9800),
+                    icone       = FooIcones.Normal,
+                    corIcone    = Color.White,
+                    texto       = "NORMAL",
+                    cor         = Rosa,
+                    corTexto    = Color.White,
                     selecionado = uiState.dificuldade == Dificuldade.NORMAL,
-                    onClick = { viewModel.selecionarDificuldade(Dificuldade.NORMAL) },
-                    modifier = Modifier.weight(1f)
+                    onClick     = { viewModel.selecionarDificuldade(Dificuldade.NORMAL) },
+                    modifier    = Modifier.weight(1f)
                 )
                 BotaoDificuldade(
-                    emoji = "😤",
-                    texto = "DIFÍCIL",
-                    cor = Color(0xFFE53935),
+                    icone       = FooIcones.Dificil,
+                    corIcone    = Color.White,
+                    texto       = "DIFÍCIL",
+                    cor         = ErroVermelho,
+                    corTexto    = Color.White,
                     selecionado = uiState.dificuldade == Dificuldade.DIFICIL,
-                    onClick = { viewModel.selecionarDificuldade(Dificuldade.DIFICIL) },
-                    modifier = Modifier.weight(1f)
+                    onClick     = { viewModel.selecionarDificuldade(Dificuldade.DIFICIL) },
+                    modifier    = Modifier.weight(1f)
                 )
             }
 
             Spacer(Modifier.height(16.dp))
 
             BotaoCartoon(
-                texto = "▶  JOGAR",
-                onClick = {
+                texto      = "JOGAR",
+                icone      = FooIcones.Jogar,
+                onClick    = {
                     temaIdSelecionado?.let { id ->
                         navController.navigate("jogo/$id/${uiState.dificuldade.name}")
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
-                tipo = BotaoCartoonTipo.PRIMARIO,
+                modifier   = Modifier.fillMaxWidth(),
+                tipo       = BotaoCartoonTipo.PRIMARIO,
                 habilitado = temaIdSelecionado != null,
-                altura = 64.dp,
-                fontSize = 20.sp
+                altura     = 64.dp,
+                fontSize   = 20.sp
             )
 
             Spacer(Modifier.height(16.dp))
+            }
         }
     }
 }
 
 @Composable
 private fun CardTema(
-    emoji: String,
     nome: String,
     quantPalavras: Int,
     selecionado: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val scale by animateFloatAsState(
         targetValue = if (selecionado) 1.04f else 1f,
@@ -186,39 +180,36 @@ private fun CardTema(
     )
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .scale(scale)
             .shadow(if (selecionado) 12.dp else 4.dp, RoundedCornerShape(16.dp))
             .clip(RoundedCornerShape(16.dp))
-            .background(
-                if (selecionado) Color(0xFF6C63FF).copy(alpha = 0.28f)
-                else Color(0xFF1E2A3A).copy(alpha = 0.9f)
-            )
             .border(
-                width = if (selecionado) 2.dp else 1.dp,
-                color = if (selecionado) Color(0xFF6C63FF) else Color.White.copy(alpha = 0.12f),
+                width = if (selecionado) 3.dp else 2.dp,
+                color = Rosa,
                 shape = RoundedCornerShape(16.dp)
             )
-            .clickable(onClick = onClick)
-            .padding(16.dp),
+            .background(RoxoMedio)
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Column(
+            modifier = Modifier.fillMaxSize().padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.Center
         ) {
-            Text(text = emoji, fontSize = 32.sp)
             Text(
-                text = nome,
-                color = Color.White,
-                fontSize = 13.sp,
+                text       = nome,
+                color      = Color.White,
+                fontSize   = 14.sp,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                maxLines = 2
+                textAlign  = TextAlign.Center,
+                maxLines   = 2
             )
+            Spacer(Modifier.height(4.dp))
             Text(
-                text = "$quantPalavras palavras",
-                color = Color.White.copy(alpha = 0.5f),
+                text  = "$quantPalavras palavras",
+                color = Color.White.copy(alpha = 0.6f),
                 fontSize = 11.sp
             )
         }
@@ -227,9 +218,11 @@ private fun CardTema(
 
 @Composable
 private fun BotaoDificuldade(
-    emoji: String,
+    icone: ImageVector,
+    corIcone: Color,
     texto: String,
     cor: Color,
+    corTexto: Color = Color.White,
     selecionado: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -247,39 +240,18 @@ private fun BotaoDificuldade(
             .clip(RoundedCornerShape(16.dp))
             .background(if (selecionado) cor else cor.copy(alpha = 0.6f))
             .then(
-                if (selecionado)
-                    Modifier.border(2.dp, Color.White, RoundedCornerShape(16.dp))
-                else
-                    Modifier
+                if (selecionado) Modifier.border(3.dp, Color.White, RoundedCornerShape(16.dp))
+                else Modifier
             )
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = emoji, fontSize = 18.sp)
-            Text(
-                text = texto,
-                color = Color.White,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            FooIcone(icone = icone, cor = corIcone, tamanho = 22.dp)
+            Text(text = texto, color = corTexto, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
         }
-    }
-}
-
-private fun emojiParaTema(nome: String): String {
-    val n = nome.lowercase()
-    return when {
-        "exceç" in n || "excecao" in n       -> "🚨"
-        "herança" in n || "heranca" in n      -> "🧬"
-        "polimorf" in n                        -> "🔄"
-        "encapsulamento" in n                  -> "🔒"
-        "introduç" in n || "introduca" in n   -> "📖"
-        "relacionamento" in n                  -> "🔗"
-        "interface gráfica" in n
-            || "interface grafica" in n        -> "🖥️"
-        "interface" in n                       -> "🤝"
-        "coleç" in n || "colecao" in n         -> "📦"
-        else                                   -> "📚"
     }
 }

@@ -25,11 +25,15 @@ fun AvatarView(
 
         // CAMADA 0 — Tom de pele
         val peleRes = when (config.tonDePele) {
-            "muito_claro", "claro" -> R.drawable.pele_branca
-            "medio_claro" -> R.drawable.base_rosa
-            "medio", "medio_escuro" -> R.drawable.pele_parda
-            "escuro" -> R.drawable.pele_negra
-            else -> R.drawable.pele_parda
+            "pele_branca"                     -> R.drawable.pele_branca
+            "base_rosa"                       -> R.drawable.base_rosa
+            "pele_parda"                      -> R.drawable.pele_parda
+            "pele_negra"                      -> R.drawable.pele_negra
+            "muito_claro", "claro"            -> R.drawable.pele_branca
+            "medio_claro"                     -> R.drawable.base_rosa
+            "medio", "medio_escuro"           -> R.drawable.pele_parda
+            "escuro"                          -> R.drawable.pele_negra
+            else                              -> R.drawable.pele_parda
         }
 
         Image(
@@ -42,11 +46,11 @@ fun AvatarView(
         // CAMADA 1 — Mão (Desenha apenas se mostrarMao for true)
         if (mostrarMao) {
             val maoRes = when (config.tonDePele) {
-                "muito_claro", "claro" -> R.drawable.mao_branca
-                "medio_claro" -> R.drawable.mao_rosa
-                "medio", "medio_escuro" -> R.drawable.mao_parda
-                "escuro" -> R.drawable.mao_negra
-                else -> R.drawable.mao_parda
+                "pele_branca", "muito_claro", "claro" -> R.drawable.mao_branca
+                "base_rosa", "medio_claro"            -> R.drawable.mao_rosa
+                "pele_parda", "medio", "medio_escuro" -> R.drawable.mao_parda
+                "pele_negra", "escuro"                -> R.drawable.mao_negra
+                else                                  -> R.drawable.mao_parda
             }
 
             Image(
@@ -129,11 +133,11 @@ fun AvatarHandOnly(
     modifier: Modifier = Modifier
 ) {
     val maoRes = when (config.tonDePele) {
-        "muito_claro", "claro" -> R.drawable.mao_branca
-        "medio_claro" -> R.drawable.mao_rosa
-        "medio", "medio_escuro" -> R.drawable.mao_parda
-        "escuro" -> R.drawable.mao_negra
-        else -> R.drawable.mao_parda
+        "pele_branca", "muito_claro", "claro" -> R.drawable.mao_branca
+        "base_rosa", "medio_claro"            -> R.drawable.mao_rosa
+        "pele_parda", "medio", "medio_escuro" -> R.drawable.mao_parda
+        "pele_negra", "escuro"                -> R.drawable.mao_negra
+        else                                  -> R.drawable.mao_parda
     }
 
     Image(

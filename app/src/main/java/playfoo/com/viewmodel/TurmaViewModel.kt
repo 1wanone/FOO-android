@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import playfoo.com.data.remote.FirestoreRepository
+import playfoo.com.domain.RankingJogador
 import playfoo.com.domain.TipoUsuario
 import javax.inject.Inject
 
@@ -21,6 +22,10 @@ data class TurmaUiState(
     val tipoUsuario: String = TipoUsuario.ALUNO,
     val membros: List<Map<String, Any>> = emptyList(),
     val partidas: List<Map<String, Any>> = emptyList(),
+    val ranking: List<RankingJogador> = emptyList(),
+    val rankingPorTurma: Map<String, List<RankingJogador>> = emptyMap(),
+    val nomes: Map<String, String> = emptyMap(),
+    val nomeProfessor: String = "",
     val telaTurma: TelaTurma = TelaTurma.INICIAL
 )
 
@@ -47,6 +52,9 @@ class TurmaViewModel @Inject constructor(
                         else carregarTurmaAluno()
                     }
             }
+        }
+        viewModelScope.launch {
+            firestoreRepository.debugUsuario("hvE48gBwcvTHEGXfRRehtxjQ0R43")
         }
     }
 
@@ -117,6 +125,17 @@ class TurmaViewModel @Inject constructor(
             firestoreRepository.getTurmasDoGestor(gestorId)
                 .onSuccess { lista ->
                     _uiState.value = _uiState.value.copy(turmasDoGestor = lista)
+                    val todosUids = lista.flatMap { turma ->
+                        (turma["membros"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                    }.distinct()
+                    if (todosUids.isNotEmpty()) {
+                        val novosNomes = firestoreRepository.buscarNomesAlunos(todosUids)
+                        _uiState.value = _uiState.value.copy(nomes = _uiState.value.nomes + novosNomes)
+                    }
+                    lista.forEach { turma ->
+                        val turmaId = turma["id"]?.toString() ?: return@forEach
+                        carregarRanking(turmaId)
+                    }
                 }
         }
     }
@@ -127,6 +146,55 @@ class TurmaViewModel @Inject constructor(
             firestoreRepository.getTurmaDoAluno(alunoId)
                 .onSuccess { turma ->
                     _uiState.value = _uiState.value.copy(turmaAtual = turma)
+                    val turmaId = turma?.get("id")?.toString() ?: return@onSuccess
+                    val nomeProfessor = firestoreRepository.buscarNomeProfessor(turmaId)
+                    _uiState.value = _uiState.value.copy(nomeProfessor = nomeProfessor)
+                    carregarRanking(turmaId)
+                }
+        }
+    }
+
+    fun carregarRanking(turmaId: String) {
+        viewModelScope.launch {
+            firestoreRepository.getPartidasTurma(turmaId).onSuccess { partidas ->
+                val porJogador = partidas.groupBy { it["jogadorId"].toString() }
+                val uidsNovos = porJogador.keys.filter { !_uiState.value.nomes.containsKey(it) }
+                if (uidsNovos.isNotEmpty()) {
+                    val novosNomes = firestoreRepository.buscarNomesAlunos(uidsNovos)
+                    _uiState.value = _uiState.value.copy(nomes = _uiState.value.nomes + novosNomes)
+                }
+                val nomes = _uiState.value.nomes
+                val lista = porJogador.map { (id, ps) ->
+                    val vitorias = ps.count { it["venceu"] == true }
+                    RankingJogador(
+                        id          = id,
+                        nome        = nomes[id] ?: id.take(8),
+                        vitorias    = vitorias,
+                        partidas    = ps.size,
+                        taxaVitoria = if (ps.isEmpty()) 0f else vitorias.toFloat() / ps.size * 100f
+                    )
+                }.sortedByDescending { it.vitorias }
+                _uiState.value = _uiState.value.copy(
+                    ranking         = lista,
+                    rankingPorTurma = _uiState.value.rankingPorTurma + (turmaId to lista)
+                )
+            }
+        }
+    }
+
+    fun removerAluno(turmaId: String, alunoId: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(carregando = true)
+            firestoreRepository.sairDaTurma(turmaId, alunoId)
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(carregando = false)
+                    carregarTurmasGestor()
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        carregando = false,
+                        erro = e.message ?: "Erro ao remover aluno"
+                    )
                 }
         }
     }

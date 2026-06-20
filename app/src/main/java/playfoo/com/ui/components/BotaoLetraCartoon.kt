@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import playfoo.com.ui.game.components.EstadoLetra
+import playfoo.com.ui.theme.*
 
 @Composable
 fun BotaoLetraCartoon(
@@ -31,14 +32,14 @@ fun BotaoLetraCartoon(
     assetErrada: Painter? = null
 ) {
     val corFundo = when (estado) {
-        EstadoLetra.DISPONIVEL -> Color(0xFF2C3E6B)
-        EstadoLetra.CORRETA    -> Color(0xFF2E7D32)
-        EstadoLetra.ERRADA     -> Color(0xFFB71C1C)
+        EstadoLetra.DISPONIVEL -> AzulCinza.copy(alpha = 0.5f)
+        EstadoLetra.CORRETA    -> Ciano.copy(alpha = 0.8f)
+        EstadoLetra.ERRADA     -> ErroVermelho.copy(alpha = 0.8f)
     }
     val corSombra = when (estado) {
-        EstadoLetra.DISPONIVEL -> Color(0xFF1A2540)
-        EstadoLetra.CORRETA    -> Color(0xFF1B5E20)
-        EstadoLetra.ERRADA     -> Color(0xFF7F0000)
+        EstadoLetra.DISPONIVEL -> Color(0xFF1A3040)
+        EstadoLetra.CORRETA    -> Color(0xFF158080)
+        EstadoLetra.ERRADA     -> Color(0xFF880000)
     }
     val assetAtual = when (estado) {
         EstadoLetra.DISPONIVEL -> assetDisponivel
@@ -51,7 +52,7 @@ fun BotaoLetraCartoon(
 
     Box(
         modifier = modifier
-            .size(36.dp)
+            .size(width = 32.dp, height = 42.dp)
             .alpha(alpha)
             .shadow(3.dp, RoundedCornerShape(8.dp))
             .clip(RoundedCornerShape(8.dp))
@@ -68,7 +69,7 @@ fun BotaoLetraCartoon(
             Text(
                 text = letra.toString(),
                 color = Color.White,
-                fontSize = 14.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
         } else {
@@ -83,7 +84,7 @@ fun BotaoLetraCartoon(
                 Text(
                     text = letra.toString(),
                     color = Color.White,
-                    fontSize = 14.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
             }

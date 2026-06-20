@@ -6,8 +6,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -18,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -45,6 +49,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -59,12 +65,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import playfoo.com.domain.TipoUsuario
 import playfoo.com.ui.components.BotaoCartoon
 import playfoo.com.ui.components.BotaoCartoonTipo
 import playfoo.com.ui.components.CardCartoon
-import playfoo.com.ui.components.FundoTela
-import playfoo.com.ui.components.TipoFundo
-import playfoo.com.domain.TipoUsuario
+import playfoo.com.ui.components.FooIcone
+import playfoo.com.ui.components.FooIcones
+import playfoo.com.ui.components.FundoAnimado
+import playfoo.com.ui.theme.*
 import playfoo.com.viewmodel.AuthUiState
 import playfoo.com.viewmodel.AuthViewModel
 
@@ -95,7 +103,10 @@ fun LoginScreen(
         }
     }
 
-    FundoTela(tipo = TipoFundo.MENU) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        FundoAnimado()
+        Box(Modifier.fillMaxSize().background(FundoOverlay))
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -121,15 +132,15 @@ fun LoginScreen(
             ) { tela ->
                 when (tela) {
                     TelaAuth.LOGIN -> CardLogin(
-                        authState      = authState,
-                        onLogin        = { email, senha -> viewModel.login(email, senha) },
-                        onLoginGoogle  = { viewModel.loginGoogle(context) },
-                        onIrRegistro   = { viewModel.limparEstado(); telaAtual = TelaAuth.REGISTRO },
+                        authState       = authState,
+                        onLogin         = { email, senha -> viewModel.login(email, senha) },
+                        onLoginGoogle   = { viewModel.loginGoogle(context) },
+                        onIrRegistro    = { viewModel.limparEstado(); telaAtual = TelaAuth.REGISTRO },
                         onIrRecuperacao = { viewModel.limparEstado(); telaAtual = TelaAuth.RECUPERAR_SENHA }
                     )
                     TelaAuth.REGISTRO -> CardRegistro(
-                        authState    = authState,
-                        onRegistrar  = { nome, email, senha, confirmar, codigoProfessor ->
+                        authState     = authState,
+                        onRegistrar   = { nome, email, senha, confirmar, codigoProfessor ->
                             viewModel.registrar(nome, email, senha, confirmar, codigoProfessor)
                         },
                         onVoltarLogin = { viewModel.limparEstado(); telaAtual = TelaAuth.LOGIN }
@@ -149,24 +160,22 @@ fun LoginScreen(
     }
 }
 
-// SLOT DE ASSET — quando o desenhista entregar a logo, substituir por:
-// Image(painterResource(R.drawable.logo), contentDescription = "FOOmobile", modifier = Modifier.height(100.dp))
 @Composable
 private fun LogoPlaceholder() {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = "🎮", fontSize = 56.sp)
+        FooIcone(icone = FooIcones.Jogador, cor = Rosa, tamanho = 56.dp)
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "FOOmobile",
+            text = "FOO",
             style = MaterialTheme.typography.headlineLarge,
-            color = Color(0xFF6C63FF),
+            color = Color.White,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 2.sp
         )
         Text(
-            text = "Jogo da Forca",
+            text = "Forca Orientada a Objetos",
             style = MaterialTheme.typography.bodyMedium,
-            color = Color.White.copy(alpha = 0.6f)
+            color = Rosa
         )
     }
 }
@@ -196,7 +205,7 @@ private fun CardLogin(
         return true
     }
 
-    CardCartoon(modifier = Modifier.fillMaxWidth()) {
+    CardCartoon(modifier = Modifier.fillMaxWidth(), corBorda = Rosa) {
         Text("Entrar", style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
 
         Spacer(Modifier.height(20.dp))
@@ -205,7 +214,7 @@ private fun CardLogin(
             valor = email,
             onValorChange = { email = it; erroLocal = null },
             label = "Email",
-            leadingIcon = { Icon(Icons.Default.Email, null, tint = Color(0xFF6C63FF)) },
+            leadingIcon = { Icon(Icons.Default.Email, null, tint = Rosa) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
             keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
         )
@@ -237,23 +246,23 @@ private fun CardLogin(
             modifier = Modifier.align(Alignment.End),
             contentPadding = PaddingValues(0.dp)
         ) {
-            Text("Esqueci minha senha", color = Color(0xFF6C63FF), style = MaterialTheme.typography.bodySmall)
+            Text("Esqueci minha senha", color = Rosa, style = MaterialTheme.typography.bodySmall)
         }
 
         Spacer(Modifier.height(8.dp))
 
         if (carregando) {
             CircularProgressIndicator(
-                color = Color(0xFF6C63FF),
+                color = Rosa,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         } else {
             BotaoCartoon(
-                texto = "ENTRAR",
-                onClick = { if (validar()) onLogin(email, senha) },
-                tipo = BotaoCartoonTipo.PRIMARIO,
+                texto    = "ENTRAR",
+                onClick  = { if (validar()) onLogin(email, senha) },
+                tipo     = BotaoCartoonTipo.PRIMARIO,
                 modifier = Modifier.fillMaxWidth(),
-                altura = 60.dp,
+                altura   = 60.dp,
                 fontSize = 18.sp
             )
         }
@@ -271,22 +280,38 @@ private fun CardLogin(
 
         Spacer(Modifier.height(20.dp))
 
-        BotaoCartoon(
-            texto = "G  Entrar com Google",
-            onClick = onLoginGoogle,
-            tipo = BotaoCartoonTipo.GOOGLE,
-            habilitado = !carregando,
-            modifier = Modifier.fillMaxWidth(),
-            altura = 60.dp,
-            fontSize = 16.sp
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp)
+                .shadow(4.dp, RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(16.dp))
+                .border(2.dp, AzulCinza, RoundedCornerShape(16.dp))
+                .background(RoxoMedio)
+                .clickable(enabled = !carregando, onClick = onLoginGoogle),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("G", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                Text(
+                    text          = "ENTRAR COM GOOGLE",
+                    color         = Color.White,
+                    fontSize      = 15.sp,
+                    fontWeight    = FontWeight.ExtraBold,
+                    letterSpacing = 1.sp
+                )
+            }
+        }
 
         Spacer(Modifier.height(24.dp))
 
         Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
             Text("Não tem conta? ", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium)
             TextButton(onClick = onIrRegistro, contentPadding = PaddingValues(0.dp)) {
-                Text("Cadastre-se", color = Color(0xFF6C63FF), fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("Cadastre-se", color = Rosa, fontWeight = FontWeight.Bold, fontSize = 15.sp)
             }
         }
     }
@@ -323,7 +348,7 @@ private fun CardRegistro(
         else -> { erroLocal = null; true }
     }
 
-    CardCartoon(modifier = Modifier.fillMaxWidth()) {
+    CardCartoon(modifier = Modifier.fillMaxWidth(), corBorda = Rosa) {
         Text("Criar conta", style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
 
         Spacer(Modifier.height(20.dp))
@@ -332,7 +357,7 @@ private fun CardRegistro(
             valor = nome,
             onValorChange = { nome = it; erroLocal = null },
             label = "Nome",
-            leadingIcon = { Icon(Icons.Default.Person, null, tint = Color(0xFF6C63FF)) },
+            leadingIcon = { Icon(Icons.Default.Person, null, tint = Rosa) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
             keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
         )
@@ -343,7 +368,7 @@ private fun CardRegistro(
             valor = email,
             onValorChange = { email = it; erroLocal = null },
             label = "Email",
-            leadingIcon = { Icon(Icons.Default.Email, null, tint = Color(0xFF6C63FF)) },
+            leadingIcon = { Icon(Icons.Default.Email, null, tint = Rosa) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
             keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
         )
@@ -378,7 +403,7 @@ private fun CardRegistro(
             valor = codigoProfessor,
             onValorChange = { codigoProfessor = it; erroLocal = null },
             label = "Código do professor (opcional)",
-            leadingIcon = { Icon(Icons.Default.Person, null, tint = Color(0xFF6C63FF)) },
+            leadingIcon = { Icon(Icons.Default.Person, null, tint = Rosa) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = {
                 focusManager.clearFocus()
@@ -401,14 +426,14 @@ private fun CardRegistro(
 
         if (carregando) {
             CircularProgressIndicator(
-                color = Color(0xFF6C63FF),
+                color = Rosa,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         } else {
             BotaoCartoon(
-                texto = "Criar conta",
-                onClick = { if (validar()) onRegistrar(nome, email, senha, confirmar, codigoProfessor) },
-                tipo = BotaoCartoonTipo.PRIMARIO,
+                texto    = "Criar conta",
+                onClick  = { if (validar()) onRegistrar(nome, email, senha, confirmar, codigoProfessor) },
+                tipo     = BotaoCartoonTipo.PRIMARIO,
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -418,7 +443,7 @@ private fun CardRegistro(
         Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
             Text("Já tem conta? ", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium)
             TextButton(onClick = onVoltarLogin, contentPadding = PaddingValues(0.dp)) {
-                Text("Entrar", color = Color(0xFF6C63FF), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                Text("Entrar", color = Rosa, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
@@ -439,7 +464,7 @@ private fun CardRecuperarSenha(onVoltarLogin: () -> Unit) {
         }
     }
 
-    CardCartoon(modifier = Modifier.fillMaxWidth()) {
+    CardCartoon(modifier = Modifier.fillMaxWidth(), corBorda = Rosa) {
         Text("Recuperar senha", style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
 
         Spacer(Modifier.height(8.dp))
@@ -455,7 +480,7 @@ private fun CardRecuperarSenha(onVoltarLogin: () -> Unit) {
         if (enviado) {
             Text(
                 text = "Link enviado! Verifique sua caixa de entrada.",
-                color = Color(0xFF4CAF50),
+                color = Ciano,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -466,7 +491,7 @@ private fun CardRecuperarSenha(onVoltarLogin: () -> Unit) {
                 valor = email,
                 onValorChange = { email = it; erroLocal = null },
                 label = "Email",
-                leadingIcon = { Icon(Icons.Default.Email, null, tint = Color(0xFF6C63FF)) },
+                leadingIcon = { Icon(Icons.Default.Email, null, tint = Rosa) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { enviar() })
             )
@@ -479,9 +504,9 @@ private fun CardRecuperarSenha(onVoltarLogin: () -> Unit) {
             Spacer(Modifier.height(24.dp))
 
             BotaoCartoon(
-                texto = "Enviar link de recuperação",
-                onClick = { enviar() },
-                tipo = BotaoCartoonTipo.PRIMARIO,
+                texto    = "Enviar link de recuperação",
+                onClick  = { enviar() },
+                tipo     = BotaoCartoonTipo.PRIMARIO,
                 modifier = Modifier.fillMaxWidth(),
                 fontSize = 14.sp
             )
@@ -490,10 +515,10 @@ private fun CardRecuperarSenha(onVoltarLogin: () -> Unit) {
         Spacer(Modifier.height(16.dp))
 
         TextButton(
-            onClick = onVoltarLogin,
+            onClick  = onVoltarLogin,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         ) {
-            Text("← Voltar ao login", color = Color(0xFF6C63FF))
+            Text("← Voltar ao login", color = Rosa)
         }
     }
 }
@@ -515,7 +540,7 @@ private fun TelaEscolherTipo(
     ) {
         Spacer(Modifier.height(32.dp))
 
-        Text("👋", fontSize = 64.sp)
+        FooIcone(icone = FooIcones.Jogador, cor = Rosa, tamanho = 64.dp)
         Text(
             text = "Bem-vindo!",
             style = MaterialTheme.typography.headlineMedium,
@@ -530,16 +555,15 @@ private fun TelaEscolherTipo(
 
         Spacer(Modifier.height(16.dp))
 
-        // Card Aluno
         CardCartoon(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { tipoSelecionado = TipoUsuario.ALUNO },
-            corBorda = if (tipoSelecionado == TipoUsuario.ALUNO) Color(0xFF6C63FF)
+            corBorda = if (tipoSelecionado == TipoUsuario.ALUNO) Rosa
                        else Color.White.copy(alpha = 0.2f)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("👨‍🎓", fontSize = 40.sp)
+                FooIcone(icone = FooIcones.Jogador, cor = Rosa, tamanho = 40.dp)
                 Spacer(Modifier.width(16.dp))
                 Column {
                     Text(
@@ -557,16 +581,15 @@ private fun TelaEscolherTipo(
             }
         }
 
-        // Card Professor
         CardCartoon(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { tipoSelecionado = TipoUsuario.GESTOR },
-            corBorda = if (tipoSelecionado == TipoUsuario.GESTOR) Color(0xFFFF9800)
+            corBorda = if (tipoSelecionado == TipoUsuario.GESTOR) Pink
                        else Color.White.copy(alpha = 0.2f)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("👨‍🏫", fontSize = 40.sp)
+                FooIcone(icone = FooIcones.Turmas, cor = Pink, tamanho = 40.dp)
                 Spacer(Modifier.width(16.dp))
                 Column {
                     Text(
@@ -584,7 +607,6 @@ private fun TelaEscolherTipo(
             }
         }
 
-        // Campo código — só aparece se selecionou Professor
         if (tipoSelecionado == TipoUsuario.GESTOR) {
             OutlinedTextField(
                 value = codigoProfessor,
@@ -594,7 +616,7 @@ private fun TelaEscolherTipo(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor     = Color.White,
                     unfocusedTextColor   = Color.White,
-                    focusedBorderColor   = Color(0xFFFF9800),
+                    focusedBorderColor   = Pink,
                     unfocusedBorderColor = Color.White.copy(alpha = 0.3f)
                 ),
                 modifier = Modifier.fillMaxWidth(),
@@ -605,7 +627,7 @@ private fun TelaEscolherTipo(
         Spacer(Modifier.height(8.dp))
 
         if (carregando) {
-            CircularProgressIndicator(color = Color(0xFF6C63FF))
+            CircularProgressIndicator(color = Rosa)
         } else {
             BotaoCartoon(
                 texto    = "Continuar",
@@ -627,15 +649,15 @@ private fun CampoTexto(
     keyboardActions: KeyboardActions = KeyboardActions.Default
 ) {
     OutlinedTextField(
-        value = valor,
-        onValueChange = onValorChange,
-        label = { Text(label) },
-        leadingIcon = leadingIcon,
+        value           = valor,
+        onValueChange   = onValorChange,
+        label           = { Text(label) },
+        leadingIcon     = leadingIcon,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
-        colors = campoAuthColors()
+        singleLine      = true,
+        modifier        = Modifier.fillMaxWidth(),
+        colors          = campoAuthColors()
     )
 }
 
@@ -650,37 +672,37 @@ private fun CampoSenha(
     keyboardActions: KeyboardActions = KeyboardActions.Default
 ) {
     OutlinedTextField(
-        value = valor,
-        onValueChange = onValorChange,
-        label = { Text(label) },
-        leadingIcon = { Icon(Icons.Default.Lock, null, tint = Color(0xFF6C63FF)) },
-        trailingIcon = {
+        value           = valor,
+        onValueChange   = onValorChange,
+        label           = { Text(label) },
+        leadingIcon     = { Icon(Icons.Default.Lock, null, tint = Rosa) },
+        trailingIcon    = {
             IconButton(onClick = onToggleVisibilidade) {
                 Icon(
-                    imageVector = if (visivel) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    imageVector    = if (visivel) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                     contentDescription = if (visivel) "Ocultar senha" else "Mostrar senha",
-                    tint = Color.White.copy(alpha = 0.55f)
+                    tint           = Color.White.copy(alpha = 0.55f)
                 )
             }
         },
         visualTransformation = if (visivel) VisualTransformation.None else PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = imeAction),
         keyboardActions = keyboardActions,
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
-        colors = campoAuthColors()
+        singleLine      = true,
+        modifier        = Modifier.fillMaxWidth(),
+        colors          = campoAuthColors()
     )
 }
 
 @Composable
 private fun campoAuthColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor    = Color(0xFF6C63FF),
-    unfocusedBorderColor  = Color.White.copy(alpha = 0.28f),
-    focusedLabelColor     = Color(0xFF6C63FF),
-    unfocusedLabelColor   = Color.White.copy(alpha = 0.5f),
-    cursorColor           = Color(0xFF6C63FF),
-    focusedTextColor      = Color.White,
-    unfocusedTextColor    = Color.White,
-    focusedLeadingIconColor   = Color(0xFF6C63FF),
-    unfocusedLeadingIconColor = Color(0xFF6C63FF)
+    focusedBorderColor        = Rosa,
+    unfocusedBorderColor      = Color.White.copy(alpha = 0.28f),
+    focusedLabelColor         = Rosa,
+    unfocusedLabelColor       = Color.White.copy(alpha = 0.5f),
+    cursorColor               = Rosa,
+    focusedTextColor          = Color.White,
+    unfocusedTextColor        = Color.White,
+    focusedLeadingIconColor   = Rosa,
+    unfocusedLeadingIconColor = Rosa
 )

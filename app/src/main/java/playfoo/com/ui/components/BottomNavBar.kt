@@ -8,12 +8,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import playfoo.com.ui.theme.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 data class NavItem(
-    val emoji: String,
+    val icone: ImageVector,
     val label: String,
     val rota: String
 )
@@ -28,7 +30,7 @@ fun BottomNavBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xFF0D1117).copy(alpha = 0.95f))
+            .background(RoxoEscuro)
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
@@ -41,14 +43,15 @@ fun BottomNavBar(
                     .clickable { onNavegar(item.rota) }
                     .padding(vertical = 4.dp)
             ) {
-                Text(
-                    text = item.emoji,
-                    fontSize = if (selecionado) 28.sp else 24.sp
+                FooIcone(
+                    icone   = item.icone,
+                    cor     = if (selecionado) Rosa else AzulCinza,
+                    tamanho = if (selecionado) 28.dp else 24.dp
                 )
                 Text(
-                    text = item.label,
-                    fontSize = 10.sp,
-                    color = if (selecionado) Color(0xFF6C63FF) else Color.White.copy(alpha = 0.5f),
+                    text       = item.label,
+                    fontSize   = 10.sp,
+                    color      = if (selecionado) Rosa else AzulCinza,
                     fontWeight = if (selecionado) FontWeight.Bold else FontWeight.Normal
                 )
             }

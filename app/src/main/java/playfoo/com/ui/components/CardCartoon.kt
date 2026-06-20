@@ -12,17 +12,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import playfoo.com.ui.theme.*
 
 @Composable
 fun CardCartoon(
     modifier: Modifier = Modifier,
-    corFundo: Color = Color(0xFF1E2A3A).copy(alpha = 0.9f),
-    corBorda: Color = Color(0xFF6C63FF),
+    corFundo: Color = FundoCard,
+    corBorda: Color = RoxoMedio,
     espessuraBorda: Dp = 2.dp,
     raio: Dp = 16.dp,
     padding: Dp = 16.dp,
     elevacao: Dp = 8.dp,
-    // SLOT DE ASSET — passar painterResource(R.drawable.card_fundo) quando pronto
     @Suppress("UNUSED_PARAMETER") assetPainter: Painter? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -33,7 +33,6 @@ fun CardCartoon(
             .border(espessuraBorda, corBorda, RoundedCornerShape(raio))
             .background(corFundo)
     ) {
-        // TODO: quando assetPainter != null, renderizar como fundo do card
         Column(
             modifier = Modifier.padding(padding),
             content = content

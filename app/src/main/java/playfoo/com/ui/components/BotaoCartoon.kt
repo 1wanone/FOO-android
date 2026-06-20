@@ -13,13 +13,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import playfoo.com.ui.theme.*
 
-enum class BotaoCartoonTipo { PRIMARIO, SECUNDARIO, PERIGO, SUCESSO, GOOGLE }
+enum class BotaoCartoonTipo { PRIMARIO, SECUNDARIO, PERIGO, NEUTRO, SUCESSO, GOOGLE }
 
 @Composable
 fun BotaoCartoon(
@@ -29,24 +31,25 @@ fun BotaoCartoon(
     tipo: BotaoCartoonTipo = BotaoCartoonTipo.PRIMARIO,
     habilitado: Boolean = true,
     altura: Dp = 56.dp,
-    fontSize: TextUnit = 16.sp,
-    // SLOT DE ASSET — quando o desenhista entregar, passar o painter aqui
-    // Exemplo: assetPainter = painterResource(R.drawable.btn_primario)
+    fontSize: TextUnit = 15.sp,
+    icone: ImageVector? = null,
     assetPainter: Painter? = null
 ) {
     val corFundo = when (tipo) {
-        BotaoCartoonTipo.PRIMARIO   -> Color(0xFF6C63FF)
-        BotaoCartoonTipo.SECUNDARIO -> Color(0xFF4CAF50)
-        BotaoCartoonTipo.PERIGO     -> Color(0xFFE53935)
-        BotaoCartoonTipo.SUCESSO    -> Color(0xFF00BCD4)
-        BotaoCartoonTipo.GOOGLE     -> Color(0xFF4285F4)
+        BotaoCartoonTipo.PRIMARIO   -> Rosa
+        BotaoCartoonTipo.SECUNDARIO -> Pink
+        BotaoCartoonTipo.PERIGO     -> ErroVermelho
+        BotaoCartoonTipo.NEUTRO     -> AzulCinza
+        BotaoCartoonTipo.SUCESSO    -> Ciano
+        BotaoCartoonTipo.GOOGLE     -> AzulCinza
     }
     val corSombra = when (tipo) {
-        BotaoCartoonTipo.PRIMARIO   -> Color(0xFF3D35CC)
-        BotaoCartoonTipo.SECUNDARIO -> Color(0xFF2E7D32)
-        BotaoCartoonTipo.PERIGO     -> Color(0xFFB71C1C)
-        BotaoCartoonTipo.SUCESSO    -> Color(0xFF00838F)
-        BotaoCartoonTipo.GOOGLE     -> Color(0xFF1A73E8)
+        BotaoCartoonTipo.PRIMARIO   -> Color(0xFFB05060)
+        BotaoCartoonTipo.SECUNDARIO -> Color(0xFF9A1050)
+        BotaoCartoonTipo.PERIGO     -> Color(0xFF8B0000)
+        BotaoCartoonTipo.NEUTRO     -> Color(0xFF2D5060)
+        BotaoCartoonTipo.SUCESSO    -> Color(0xFF1A7070)
+        BotaoCartoonTipo.GOOGLE     -> Color(0xFF2D5060)
     }
     val alpha = if (habilitado) 1f else 0.5f
 
@@ -74,12 +77,22 @@ fun BotaoCartoon(
                     .background(corFundo.copy(alpha = alpha)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = texto,
-                    color = Color.White,
-                    fontSize = fontSize,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    icone?.let {
+                        FooIcone(icone = it, cor = Color.White, tamanho = 20.dp)
+                    }
+                    Text(
+                        text = texto.uppercase(),
+                        color = Color.White,
+                        fontSize = fontSize,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.sp
+                    )
+                }
             }
         }
     }

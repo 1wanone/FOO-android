@@ -21,19 +21,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Group
-import playfoo.com.domain.TipoUsuario
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,23 +34,33 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import playfoo.com.domain.AvatarConfig
+import playfoo.com.domain.TipoUsuario
 import playfoo.com.ui.components.BotaoCartoon
 import playfoo.com.ui.components.BotaoCartoonTipo
+import playfoo.com.ui.components.BottomNavFoo
 import playfoo.com.ui.components.CardCartoon
+import playfoo.com.ui.components.FooIcone
+import playfoo.com.ui.components.FooIcones
+import playfoo.com.ui.components.AvatarCirculo
 import playfoo.com.ui.components.FundoTela
+import playfoo.com.ui.components.HeaderFoo
 import playfoo.com.ui.components.TipoFundo
-import playfoo.com.ui.game.components.AvatarView
-import playfoo.com.ui.game.components.EstadoAvatar
+import playfoo.com.ui.theme.*
 import playfoo.com.viewmodel.PerfilUiState
 import playfoo.com.viewmodel.PerfilViewModel
 
@@ -104,23 +103,26 @@ fun PerfilScreen(
             label = "transicao_perfil"
         ) { tela ->
             when (tela) {
-                TelaPerfil.PERFIL ->
+                TelaPerfil.PERFIL -> Box(modifier = Modifier.fillMaxSize()) {
                     ConteudoPerfil(
-                        uiState            = uiState,
-                        onPersonalizar     = { viewModel.abrirEditor() },
-                        onLogout           = {
-                            viewModel.logout()
-                            navController.navigate("login") {
-                                popUpTo(0) { inclusive = true }
-                                launchSingleTop = true
-                            }
-                        },
-                        onFazerLogin       = { navController.navigate("login") },
-                        onEntrarTurma      = { navController.navigate("turmas") },
-                        onVoltar           = { navController.navigateUp() },
-                        onGerenciarTurmas  = onGerenciarTurmas,
-                        onVerDashboard     = onVerDashboard
+                        uiState           = uiState,
+                        onPersonalizar    = { viewModel.abrirEditor() },
+                        onFazerLogin      = { navController.navigate("login") },
+                        onEntrarTurma     = { navController.navigate("turmas") },
+                        onVoltar          = { navController.navigateUp() },
+                        onGerenciarTurmas = onGerenciarTurmas,
+                        onVerDashboard    = onVerDashboard,
+                        modifier          = Modifier.padding(bottom = 80.dp)
                     )
+                    BottomNavFoo(
+                        currentRoute = "perfil",
+                        onInicio     = { navController.navigate("menu") },
+                        onTurma      = { navController.navigate("turmas") },
+                        onPerfil     = {},
+                        onOpcoes     = { navController.navigate("opcoes") },
+                        modifier     = Modifier.align(Alignment.BottomCenter)
+                    )
+                }
                 TelaPerfil.EDITOR_AVATAR ->
                     ConteudoEditorAvatar(
                         avatarAtual = uiState.avatarConfig,
@@ -136,50 +138,34 @@ fun PerfilScreen(
 private fun ConteudoPerfil(
     uiState: PerfilUiState,
     onPersonalizar: () -> Unit,
-    onLogout: () -> Unit,
     onFazerLogin: () -> Unit,
     onEntrarTurma: () -> Unit,
     onVoltar: () -> Unit,
     onGerenciarTurmas: () -> Unit,
-    onVerDashboard: (String) -> Unit
+    onVerDashboard: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = modifier.fillMaxSize()
     ) {
-        Spacer(Modifier.height(16.dp))
+        HeaderFoo("Meu Perfil", onVoltar = onVoltar)
 
-        // Header compacto com botão voltar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            IconButton(onClick = onVoltar) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar", tint = Color.White)
-            }
-            Text(
-                text = "Meu Perfil",
-                style = MaterialTheme.typography.titleLarge,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
         Spacer(Modifier.height(8.dp))
 
-        // Seção do avatar com fundo gradiente
+        // Seção do avatar
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
                     Brush.verticalGradient(
-                        listOf(
-                            corNivel(uiState.nivel).copy(alpha = 0.18f),
-                            Color.Transparent
-                        )
+                        listOf(corNivel(uiState.nivel).copy(alpha = 0.18f), Color.Transparent)
                     ),
                     RoundedCornerShape(24.dp)
                 )
@@ -187,22 +173,11 @@ private fun ConteudoPerfil(
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // Avatar grande com borda colorida
-                Box(
-                    modifier = Modifier
-                        .size(180.dp)
-                        .shadow(16.dp, CircleShape)
-                        .clip(CircleShape)
-                        .border(3.dp, corNivel(uiState.nivel), CircleShape)
-                        .background(Color(0xFF1E2A3A)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AvatarView(
-                        config = uiState.avatarConfig,
-                        estado = EstadoAvatar.NEUTRO,
-                        modifier = Modifier.size(160.dp)
-                    )
-                }
+                AvatarCirculo(
+                    config   = uiState.avatarConfig,
+                    tamanho  = 90.dp,
+                    bordaCor = Pink
+                )
 
                 Spacer(Modifier.height(12.dp))
 
@@ -224,30 +199,33 @@ private fun ConteudoPerfil(
 
                 Spacer(Modifier.height(10.dp))
 
-                // Badge de nível
                 Box(
                     modifier = Modifier
-                        .background(
-                            corNivel(uiState.nivel).copy(alpha = 0.22f),
-                            RoundedCornerShape(20.dp)
-                        )
-                        .border(1.5.dp, corNivel(uiState.nivel), RoundedCornerShape(20.dp))
+                        .background(Pink.copy(alpha = 0.22f), RoundedCornerShape(20.dp))
+                        .border(1.5.dp, Pink, RoundedCornerShape(20.dp))
                         .padding(horizontal = 20.dp, vertical = 6.dp)
                 ) {
-                    Text(
-                        text = "⭐ ${uiState.nivel}",
-                        color = corNivel(uiState.nivel),
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 14.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        FooIcone(icone = FooIcones.Estrela, cor = Pink, tamanho = 16.dp)
+                        Text(
+                            text = uiState.nivel,
+                            color = Pink,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 14.sp
+                        )
+                    }
                 }
 
                 Spacer(Modifier.height(14.dp))
 
                 BotaoCartoon(
-                    texto    = "✏  Personalizar Avatar",
+                    texto    = "Personalizar Avatar",
+                    icone    = FooIcones.Avatar,
                     onClick  = onPersonalizar,
-                    tipo     = BotaoCartoonTipo.SECUNDARIO,
+                    tipo     = BotaoCartoonTipo.PRIMARIO,
                     modifier = Modifier.fillMaxWidth(0.78f),
                     fontSize = 14.sp
                 )
@@ -256,7 +234,7 @@ private fun ConteudoPerfil(
 
         Spacer(Modifier.height(16.dp))
 
-        // Turma — diferenciado por tipo de usuário
+        // Turma
         if (uiState.tipoUsuario == TipoUsuario.GESTOR) {
             CardCartoon(modifier = Modifier.fillMaxWidth()) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -265,18 +243,20 @@ private fun ConteudoPerfil(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "🏫 Minhas Turmas (${uiState.turmasDoGestor.size})",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                        IconButton(onClick = onGerenciarTurmas) {
-                            Icon(
-                                Icons.Default.Group,
-                                contentDescription = "Gerenciar turmas",
-                                tint = Color(0xFF6C63FF)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            FooIcone(icone = FooIcones.Turmas, cor = Rosa, tamanho = 18.dp)
+                            Text(
+                                text = "Minhas Turmas (${uiState.turmasDoGestor.size})",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
                             )
+                        }
+                        IconButton(onClick = onGerenciarTurmas) {
+                            Icon(imageVector = FooIcones.Turma, contentDescription = "Gerenciar turmas", tint = Rosa)
                         }
                     }
 
@@ -287,49 +267,28 @@ private fun ConteudoPerfil(
                             style = MaterialTheme.typography.bodyMedium
                         )
                         BotaoCartoon(
-                            texto    = "+ Criar turma",
+                            texto    = "Criar turma",
+                            icone    = FooIcones.Adicionar,
                             onClick  = onGerenciarTurmas,
                             tipo     = BotaoCartoonTipo.SECUNDARIO,
                             modifier = Modifier.fillMaxWidth()
                         )
                     } else {
                         uiState.turmasDoGestor.forEach { turma ->
-                            CardCartoon(
-                                modifier  = Modifier.fillMaxWidth(),
-                                corBorda  = Color(0xFF6C63FF),
-                                padding   = 12.dp
-                            ) {
+                            CardCartoon(modifier = Modifier.fillMaxWidth(), corBorda = Rosa, padding = 12.dp) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = turma["nome"].toString(),
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                        Text(
-                                            text = "Código: ${turma["codigo"]}",
-                                            color = Color(0xFF6C63FF),
-                                            fontWeight = FontWeight.Bold,
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
+                                        Text(text = turma["nome"].toString(), color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                        Text(text = "Código: ${turma["codigo"]}", color = Rosa, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                                         val membros = (turma["membros"] as? List<*>)?.size ?: 0
-                                        Text(
-                                            text = "$membros aluno(s)",
-                                            color = Color.White.copy(alpha = 0.6f),
-                                            fontSize = 12.sp
-                                        )
+                                        Text(text = "$membros aluno(s)", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
                                     }
                                     IconButton(onClick = { onVerDashboard(turma["id"].toString()) }) {
-                                        Icon(
-                                            Icons.Default.BarChart,
-                                            contentDescription = "Ver dashboard",
-                                            tint = Color(0xFFFF9800)
-                                        )
+                                        Icon(imageVector = FooIcones.Grafico, contentDescription = "Ver dashboard", tint = Rosa)
                                     }
                                 }
                             }
@@ -339,23 +298,13 @@ private fun ConteudoPerfil(
             }
         } else {
             CardCartoon(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Turma",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = "Turma", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(12.dp))
                 if (uiState.turmaAluno != null) {
                     val turma = uiState.turmaAluno
                     val nome = turma["nome"]?.toString() ?: ""
                     if (nome.isNotBlank()) {
-                        Text(
-                            text = nome,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
+                        Text(text = nome, color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                         Spacer(Modifier.height(8.dp))
                     }
                     Row(
@@ -363,96 +312,55 @@ private fun ConteudoPerfil(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Código",
-                            color = Color.White.copy(alpha = 0.7f),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Surface(
-                            color = Color(0xFF6C63FF).copy(alpha = 0.25f),
-                            shape = MaterialTheme.shapes.small
-                        ) {
+                        Text(text = "Código", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium)
+                        Surface(color = Rosa.copy(alpha = 0.25f), shape = MaterialTheme.shapes.small) {
                             Text(
                                 text = turma["codigo"]?.toString() ?: "",
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelLarge,
-                                color = Color(0xFFAFA8FF),
+                                color = TextoSecundario,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 } else {
-                    Text(
-                        text = "Você não está em nenhuma turma.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.6f)
-                    )
+                    Text(text = "Você não está em nenhuma turma.", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.6f))
                     Spacer(Modifier.height(12.dp))
-                    BotaoCartoon(
-                        texto    = "Entrar em uma turma",
-                        onClick  = onEntrarTurma,
-                        tipo     = BotaoCartoonTipo.SECUNDARIO,
-                        modifier = Modifier.fillMaxWidth(),
-                        fontSize = 14.sp
-                    )
+                    BotaoCartoon(texto = "Entrar em uma turma", onClick = onEntrarTurma, tipo = BotaoCartoonTipo.SECUNDARIO, modifier = Modifier.fillMaxWidth(), fontSize = 14.sp)
                 }
             }
         }
 
         Spacer(Modifier.height(16.dp))
 
-        // Minhas Estatísticas detalhadas
+        // Estatísticas
         CardCartoon(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "📈 Minhas Estatísticas",
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FooIcone(icone = FooIcones.Grafico, cor = Rosa, tamanho = 18.dp)
+                Text(text = "Minhas Estatísticas", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
+            }
 
             Spacer(Modifier.height(12.dp))
 
-            // Nível chip
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Nível:",
-                    color = Color.White.copy(alpha = 0.7f),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Surface(color = corNivel(uiState.nivel), shape = MaterialTheme.shapes.medium) {
-                    Text(
-                        text = uiState.nivel,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.labelMedium
-                    )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "Nível:", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium)
+                Surface(color = Pink, shape = MaterialTheme.shapes.medium) {
+                    Text(text = uiState.nivel, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp), color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
                 }
             }
 
             Spacer(Modifier.height(12.dp))
 
-            // Grid 2x2
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                MiniCard("🎮", uiState.totalPartidas.toString(), "Partidas", Modifier.weight(1f))
-                MiniCard("🏆", uiState.totalVitorias.toString(), "Vitórias", Modifier.weight(1f))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MiniCard(FooIcones.Jogador, uiState.totalPartidas.toString(), "Partidas", Modifier.weight(1f))
+                MiniCard(FooIcones.Trofeu,  uiState.totalVitorias.toString(), "Vitórias", Modifier.weight(1f))
             }
 
             Spacer(Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                MiniCard("💔", uiState.totalDerrotas.toString(), "Derrotas", Modifier.weight(1f))
-                MiniCard("📊", "${uiState.taxaVitoria.toInt()}%", "Taxa", Modifier.weight(1f))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MiniCard(FooIcones.Derrota, uiState.totalDerrotas.toString(), "Derrotas", Modifier.weight(1f))
+                MiniCard(FooIcones.Grafico, "${uiState.taxaVitoria.toInt()}%", "Taxa",    Modifier.weight(1f))
             }
 
             if (uiState.temaFavorito.isNotBlank() && uiState.temaFavorito != "Nenhum") {
@@ -462,28 +370,20 @@ private fun ConteudoPerfil(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Tema favorito:",
-                        color = Color.White.copy(alpha = 0.7f),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = uiState.temaFavorito,
-                        color = Color(0xFF6C63FF),
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Text(text = "Tema favorito:", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium)
+                    Box(
+                        modifier = Modifier
+                            .background(Pink, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(text = uiState.temaFavorito, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
                 }
             }
 
             if (uiState.palavrasErradas.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
-                Text(
-                    text = "Palavras difíceis:",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Text(text = "Palavras difíceis:", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(8.dp))
                 val maxErros = uiState.palavrasErradas.values.maxOrNull()?.toFloat() ?: 1f
                 FlowRow(
@@ -493,47 +393,36 @@ private fun ConteudoPerfil(
                 ) {
                     uiState.palavrasErradas.entries.forEach { (palavra, erros) ->
                         val chipAlpha = 0.5f + (erros.toFloat() / maxErros * 0.5f)
-                        val chipSize = (12 + (erros.toFloat() / maxErros * 10).toInt()).sp
+                        val chipSize  = (12 + (erros.toFloat() / maxErros * 10).toInt()).sp
                         Box(
                             modifier = Modifier
-                                .background(
-                                    Color(0xFFE53935).copy(alpha = chipAlpha),
-                                    androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
-                                )
+                                .border(1.dp, Rosa.copy(alpha = chipAlpha), RoundedCornerShape(20.dp))
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(RoxoMedio.copy(alpha = chipAlpha))
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
-                            Text(
-                                text = palavra,
-                                color = Color.White,
-                                fontSize = chipSize,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Text(text = palavra, color = Color.White, fontSize = chipSize, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
         }
 
-        // Gráficos individuais por tema
+        // Gráficos por tema
         if (uiState.estatisticasPorTema.isNotEmpty()) {
             Spacer(Modifier.height(16.dp))
 
             CardCartoon(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    "📊 Desempenho por Tema",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FooIcone(icone = FooIcones.Grafico, cor = Rosa, tamanho = 18.dp)
+                    Text("Desempenho por Tema", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
                 Spacer(Modifier.height(8.dp))
                 AndroidView(
                     factory = { context ->
                         com.github.mikephil.charting.charts.BarChart(context).apply {
                             description.isEnabled = false
-                            legend.apply {
-                                isEnabled = true
-                                textColor = android.graphics.Color.WHITE
-                            }
+                            legend.apply { isEnabled = true; textColor = android.graphics.Color.WHITE }
                             axisRight.isEnabled = false
                             axisLeft.apply {
                                 textColor = android.graphics.Color.WHITE
@@ -556,56 +445,39 @@ private fun ConteudoPerfil(
                             it["tema"].toString().let { n -> if (n.length > 5) n.take(5) + "." else n }
                         }
                         val entriesVitorias = uiState.estatisticasPorTema.mapIndexed { i, d ->
-                            com.github.mikephil.charting.data.BarEntry(
-                                i.toFloat(),
-                                (d["vitorias"] as? Int)?.toFloat() ?: 0f
-                            )
+                            com.github.mikephil.charting.data.BarEntry(i.toFloat(), (d["vitorias"] as? Int)?.toFloat() ?: 0f)
                         }
                         val entriesDerrotas = uiState.estatisticasPorTema.mapIndexed { i, d ->
-                            com.github.mikephil.charting.data.BarEntry(
-                                i.toFloat(),
-                                (d["derrotas"] as? Int)?.toFloat() ?: 0f
-                            )
+                            com.github.mikephil.charting.data.BarEntry(i.toFloat(), (d["derrotas"] as? Int)?.toFloat() ?: 0f)
                         }
                         val intFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
                             override fun getFormattedValue(value: Float) = value.toInt().toString()
                         }
                         val setVitorias = com.github.mikephil.charting.data.BarDataSet(entriesVitorias, "Vitórias").apply {
-                            color = Color(0xFF4CAF50).toArgb()
-                            valueTextColor = android.graphics.Color.WHITE
-                            valueTextSize = 9f
-                            valueFormatter = intFormatter
+                            color = Ciano.toArgb()
+                            valueTextColor = android.graphics.Color.WHITE; valueTextSize = 9f; valueFormatter = intFormatter
                         }
                         val setDerrotas = com.github.mikephil.charting.data.BarDataSet(entriesDerrotas, "Derrotas").apply {
-                            color = Color(0xFFE53935).toArgb()
-                            valueTextColor = android.graphics.Color.WHITE
-                            valueTextSize = 9f
-                            valueFormatter = intFormatter
+                            color = ErroVermelho.toArgb()
+                            valueTextColor = android.graphics.Color.WHITE; valueTextSize = 9f; valueFormatter = intFormatter
                         }
-                        chart.xAxis.valueFormatter =
-                            com.github.mikephil.charting.formatter.IndexAxisValueFormatter(labels.toTypedArray())
-                        val barData = com.github.mikephil.charting.data.BarData(setVitorias, setDerrotas).apply {
-                            barWidth = 0.35f
-                        }
+                        chart.xAxis.valueFormatter = com.github.mikephil.charting.formatter.IndexAxisValueFormatter(labels.toTypedArray())
+                        val barData = com.github.mikephil.charting.data.BarData(setVitorias, setDerrotas).apply { barWidth = 0.35f }
                         chart.data = barData
                         chart.groupBars(0f, 0.1f, 0.05f)
                         chart.invalidate()
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(260.dp)
+                    modifier = Modifier.fillMaxWidth().height(260.dp)
                 )
             }
 
             Spacer(Modifier.height(16.dp))
 
             CardCartoon(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    "🎯 Temas Jogados",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FooIcone(icone = FooIcones.Meta, cor = Rosa, tamanho = 18.dp)
+                    Text("Temas Jogados", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
                 Spacer(Modifier.height(8.dp))
                 AndroidView(
                     factory = { context ->
@@ -614,54 +486,31 @@ private fun ConteudoPerfil(
                             isDrawHoleEnabled = true
                             holeRadius = 40f
                             setHoleColor(android.graphics.Color.TRANSPARENT)
-                            legend.apply {
-                                isEnabled = true
-                                textColor = android.graphics.Color.WHITE
-                                textSize = 10f
-                            }
+                            legend.apply { isEnabled = true; textColor = android.graphics.Color.WHITE; textSize = 10f }
                             setEntryLabelColor(android.graphics.Color.WHITE)
                             setEntryLabelTextSize(10f)
                         }
                     },
                     update = { chart ->
-                        val cores = listOf(
-                            Color(0xFF6C63FF), Color(0xFF4CAF50), Color(0xFFFF9800),
-                            Color(0xFFE53935), Color(0xFF00BCD4), Color(0xFFFF4081),
-                            Color(0xFFFFEB3B), Color(0xFF9C27B0), Color(0xFF607D8B)
-                        )
+                        val cores = listOf(Rosa, Ciano, RoxoMedio, ErroVermelho, AzulCinza, Pink, Color(0xFFFFEB3B), Color(0xFF9C27B0), Color(0xFF607D8B))
                         val entries = uiState.estatisticasPorTema.map { d ->
-                            com.github.mikephil.charting.data.PieEntry(
-                                (d["total"] as? Int)?.toFloat() ?: 0f,
-                                d["tema"].toString().take(8)
-                            )
+                            com.github.mikephil.charting.data.PieEntry((d["total"] as? Int)?.toFloat() ?: 0f, d["tema"].toString().take(8))
                         }
                         val dataSet = com.github.mikephil.charting.data.PieDataSet(entries, "").apply {
                             colors = cores.map { it.toArgb() }
-                            valueTextColor = android.graphics.Color.WHITE
-                            valueTextSize = 11f
+                            valueTextColor = android.graphics.Color.WHITE; valueTextSize = 11f
                         }
                         chart.data = com.github.mikephil.charting.data.PieData(dataSet)
                         chart.invalidate()
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(220.dp)
+                    modifier = Modifier.fillMaxWidth().height(220.dp)
                 )
             }
         }
 
         Spacer(Modifier.height(24.dp))
 
-        if (uiState.usuarioLogado != null) {
-            BotaoCartoon(
-                texto    = "🚪  SAIR",
-                onClick  = onLogout,
-                tipo     = BotaoCartoonTipo.PERIGO,
-                modifier = Modifier.fillMaxWidth(),
-                altura   = 60.dp,
-                fontSize = 17.sp
-            )
-        } else {
+        if (uiState.usuarioLogado == null) {
             BotaoCartoon(
                 texto    = "Fazer Login",
                 onClick  = onFazerLogin,
@@ -671,14 +520,15 @@ private fun ConteudoPerfil(
         }
 
         Spacer(Modifier.height(32.dp))
+        }
     }
 }
 
 @Composable
-private fun MiniCard(emoji: String, valor: String, label: String, modifier: Modifier = Modifier) {
-    CardCartoon(modifier = modifier, padding = 8.dp, corBorda = Color(0xFF6C63FF)) {
+private fun MiniCard(icone: ImageVector, valor: String, label: String, modifier: Modifier = Modifier) {
+    CardCartoon(modifier = modifier, padding = 8.dp, corBorda = Rosa, corFundo = RoxoEscuro, raio = 8.dp) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(emoji, fontSize = 20.sp)
+            FooIcone(icone = icone, cor = Rosa, tamanho = 22.dp)
             Text(valor, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             Text(label, color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
         }
@@ -692,25 +542,7 @@ private fun ConteudoEditorAvatar(
     onVoltar: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        Surface(
-            color = Color.Black.copy(alpha = 0.35f),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier.padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onVoltar) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar", tint = Color.White)
-                }
-                Text(
-                    text = "Editar Avatar",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
+        HeaderFoo("Personalizar Avatar", onVoltar = onVoltar)
 
         Box(modifier = Modifier.weight(1f)) {
             AvatarEditorScreen(
@@ -718,18 +550,6 @@ private fun ConteudoEditorAvatar(
                 onSalvar    = onSalvar
             )
         }
-    }
-}
-
-@Composable
-private fun LinhaEstatistica(label: String, valor: String, corValor: Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium)
-        Text(valor, color = corValor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
     }
 }
 

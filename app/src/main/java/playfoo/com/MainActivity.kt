@@ -24,6 +24,7 @@ import playfoo.com.ui.multiplayer.MultiplayerScreen
 import playfoo.com.ui.perfil.PerfilScreen
 import playfoo.com.ui.selecionar.SelecionarTemaScreen
 import playfoo.com.ui.theme.FOOmobileTheme
+import playfoo.com.ui.opcoes.OpcoesScreen
 import playfoo.com.ui.turma.TurmaScreen
 
 @AndroidEntryPoint
@@ -80,5 +81,8 @@ fun ForcaNavHost() {
             )
         }
         composable("login") { LoginScreen(navController) }
+        composable("opcoes") {
+            OpcoesScreen(navController = navController)
+        }
     }
 }
