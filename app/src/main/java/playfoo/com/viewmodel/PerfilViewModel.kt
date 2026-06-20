@@ -14,6 +14,7 @@ import playfoo.com.data.remote.FirebaseAuthRepository
 import playfoo.com.data.remote.FirestoreRepository
 import playfoo.com.domain.AuthUser
 import playfoo.com.domain.AvatarConfig
+import playfoo.com.domain.PalavraFrequencia
 import playfoo.com.domain.TipoUsuario
 import javax.inject.Inject
 
@@ -31,6 +32,7 @@ data class PerfilUiState(
     val taxaVitoria: Float = 0f,
     val temaFavorito: String = "",
     val palavrasErradas: Map<String, Int> = emptyMap(),
+    val palavrasDificeis: List<PalavraFrequencia> = emptyList(),
     val estatisticasPorTema: List<Map<String, Any>> = emptyList(),
     val nivel: String = "INICIANTE",
     val modoEdicao: Boolean = false,
@@ -95,15 +97,20 @@ class PerfilViewModel @Inject constructor(
                     val tema     = (stats["temaFavorito"] as? String) ?: ""
                     @Suppress("UNCHECKED_CAST")
                     val palavras = (stats["palavrasErradas"] as? Map<String, Int>) ?: emptyMap()
+                    val palavrasDificeis = palavras.entries
+                        .sortedByDescending { it.value }
+                        .take(15)
+                        .map { (palavra, freq) -> PalavraFrequencia(palavra, freq) }
                     _uiState.value = _uiState.value.copy(
-                        carregando      = false,
-                        totalPartidas   = total,
-                        totalVitorias   = vitorias,
-                        totalDerrotas   = derrotas,
-                        taxaVitoria     = taxa,
-                        temaFavorito    = tema,
-                        palavrasErradas = palavras,
-                        nivel           = calcularNivel(total, vitorias)
+                        carregando       = false,
+                        totalPartidas    = total,
+                        totalVitorias    = vitorias,
+                        totalDerrotas    = derrotas,
+                        taxaVitoria      = taxa,
+                        temaFavorito     = tema,
+                        palavrasErradas  = palavras,
+                        palavrasDificeis = palavrasDificeis,
+                        nivel            = calcularNivel(total, vitorias)
                     )
                 }
                 .onFailure {

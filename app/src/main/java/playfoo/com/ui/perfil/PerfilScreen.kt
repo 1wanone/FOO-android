@@ -59,6 +59,7 @@ import playfoo.com.ui.components.FooIcones
 import playfoo.com.ui.components.AvatarCirculo
 import playfoo.com.ui.components.FundoTela
 import playfoo.com.ui.components.HeaderFoo
+import playfoo.com.ui.components.NuvemPalavras
 import playfoo.com.ui.components.TipoFundo
 import playfoo.com.ui.theme.*
 import playfoo.com.viewmodel.PerfilUiState
@@ -381,29 +382,33 @@ private fun ConteudoPerfil(
                 }
             }
 
-            if (uiState.palavrasErradas.isNotEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                Text(text = "Palavras difíceis:", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.height(8.dp))
-                val maxErros = uiState.palavrasErradas.values.maxOrNull()?.toFloat() ?: 1f
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        CardCartoon(modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    uiState.palavrasErradas.entries.forEach { (palavra, erros) ->
-                        val chipAlpha = 0.5f + (erros.toFloat() / maxErros * 0.5f)
-                        val chipSize  = (12 + (erros.toFloat() / maxErros * 10).toInt()).sp
-                        Box(
-                            modifier = Modifier
-                                .border(1.dp, Rosa.copy(alpha = chipAlpha), RoundedCornerShape(20.dp))
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(RoxoMedio.copy(alpha = chipAlpha))
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text(text = palavra, color = Color.White, fontSize = chipSize, fontWeight = FontWeight.Bold)
-                        }
-                    }
+                    FooIcone(FooIcones.Aviso, cor = Rosa, tamanho = 18.dp)
+                    Text("Palavras Difíceis", color = Color.White,
+                         fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+                if (uiState.palavrasDificeis.isEmpty()) {
+                    Text(
+                        "Nenhuma palavra difícil ainda. Continue jogando!",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 13.sp
+                    )
+                } else {
+                    NuvemPalavras(
+                        palavras = uiState.palavrasDificeis,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    )
                 }
             }
         }
@@ -436,14 +441,12 @@ private fun ConteudoPerfil(
                                 position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
                                 labelRotationAngle = -45f
                             }
-                            setExtraBottomOffset(20f)
+                            setExtraBottomOffset(40f)
                             setTouchEnabled(false)
                         }
                     },
                     update = { chart ->
-                        val labels = uiState.estatisticasPorTema.map {
-                            it["tema"].toString().let { n -> if (n.length > 5) n.take(5) + "." else n }
-                        }
+                        val labels = uiState.estatisticasPorTema.map { abreviarTema(it["tema"].toString()) }
                         val entriesVitorias = uiState.estatisticasPorTema.mapIndexed { i, d ->
                             com.github.mikephil.charting.data.BarEntry(i.toFloat(), (d["vitorias"] as? Int)?.toFloat() ?: 0f)
                         }
@@ -489,18 +492,21 @@ private fun ConteudoPerfil(
                             legend.apply { isEnabled = true; textColor = android.graphics.Color.WHITE; textSize = 10f }
                             setEntryLabelColor(android.graphics.Color.WHITE)
                             setEntryLabelTextSize(10f)
+                            setCenterTextColor(android.graphics.Color.WHITE)
+                            setCenterTextSize(12f)
                         }
                     },
                     update = { chart ->
                         val cores = listOf(Rosa, Ciano, RoxoMedio, ErroVermelho, AzulCinza, Pink, Color(0xFFFFEB3B), Color(0xFF9C27B0), Color(0xFF607D8B))
                         val entries = uiState.estatisticasPorTema.map { d ->
-                            com.github.mikephil.charting.data.PieEntry((d["total"] as? Int)?.toFloat() ?: 0f, d["tema"].toString().take(8))
+                            com.github.mikephil.charting.data.PieEntry((d["total"] as? Int)?.toFloat() ?: 0f, abreviarTema(d["tema"].toString()))
                         }
                         val dataSet = com.github.mikephil.charting.data.PieDataSet(entries, "").apply {
                             colors = cores.map { it.toArgb() }
                             valueTextColor = android.graphics.Color.WHITE; valueTextSize = 11f
                         }
                         chart.data = com.github.mikephil.charting.data.PieData(dataSet)
+                        chart.centerText = "${uiState.totalPartidas}\npartidas"
                         chart.invalidate()
                     },
                     modifier = Modifier.fillMaxWidth().height(220.dp)
@@ -551,6 +557,18 @@ private fun ConteudoEditorAvatar(
             )
         }
     }
+}
+
+private fun abreviarTema(nome: String): String {
+    val mapa = mapOf(
+        "Exceções e Tratamento"        to "Exceções",
+        "Herança"                      to "Herança",
+        "Polimorfismo"                 to "Polimorf.",
+        "Encapsulamento"               to "Encaps.",
+        "Introdução"                   to "Introd.",
+        "Relacionamento entre Classes" to "Relac."
+    )
+    return mapa[nome] ?: if (nome.length > 8) nome.take(7) + "." else nome
 }
 
 private fun corNivel(nivel: String): Color = when (nivel) {
