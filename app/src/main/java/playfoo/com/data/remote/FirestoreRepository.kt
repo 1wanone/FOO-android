@@ -473,6 +473,36 @@ class FirestoreRepository @Inject constructor() {
         Result.failure(e)
     }
 
+    suspend fun cancelarSala(salaId: String): Result<Unit> = try {
+        db.collection("salas").document(salaId)
+            .update("status", "cancelada")
+            .await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    suspend fun aceitarReversa(salaId: String, jogadorNumero: Int): Result<Unit> = try {
+        db.collection("salas").document(salaId)
+            .update("aceiteRevanche$jogadorNumero", true)
+            .await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    suspend fun resetarAceites(salaId: String): Result<Unit> = try {
+        db.collection("salas").document(salaId)
+            .update(mapOf(
+                "aceiteRevanche1" to false,
+                "aceiteRevanche2" to false
+            ))
+            .await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
     fun escutarSala(salaId: String): Flow<Map<String, Any>> = callbackFlow {
         val listener = db.collection("salas").document(salaId)
             .addSnapshotListener { snap, err ->

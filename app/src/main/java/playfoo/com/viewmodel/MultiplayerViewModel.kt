@@ -11,7 +11,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import playfoo.com.data.TemaDataSource
+import playfoo.com.data.local.AvatarPreferences
 import playfoo.com.data.remote.FirestoreRepository
+import playfoo.com.domain.AvatarConfig
 import playfoo.com.domain.Dificuldade
 import javax.inject.Inject
 
@@ -47,12 +49,19 @@ data class MultiplayerUiState(
     val timerAtivo: Boolean = false,
     // Resultado
     val euVenci: Boolean = false,
-    val palavraFinal: String = ""
+    val palavraFinal: String = "",
+    // Revanche
+    val aceiteRevanche1: Boolean = false,
+    val aceiteRevanche2: Boolean = false,
+    // Avatares
+    val avatarConfigLocal: AvatarConfig = AvatarConfig(),
+    val avatarConfigRemoto: AvatarConfig = AvatarConfig()
 )
 
 @HiltViewModel
 class MultiplayerViewModel @Inject constructor(
-    private val firestoreRepository: FirestoreRepository
+    private val firestoreRepository: FirestoreRepository,
+    private val avatarPreferences: AvatarPreferences
 ) : ViewModel() {
 
     private val auth = FirebaseAuth.getInstance()
@@ -99,7 +108,8 @@ class MultiplayerViewModel @Inject constructor(
                         palavraFinal       = palavra.texto,
                         tentativasEu       = dificuldade.tentativasMaximas,
                         tentativasOponente = dificuldade.tentativasMaximas,
-                        tela               = TelaMultiplayer.AGUARDAR
+                        tela               = TelaMultiplayer.AGUARDAR,
+                        avatarConfigLocal  = avatarPreferences.load()
                     )
                     escutarSala(salaId)
                 },
@@ -127,6 +137,11 @@ class MultiplayerViewModel @Inject constructor(
                                 Dificuldade.valueOf(dados["dificuldade"].toString())
                             }.getOrDefault(Dificuldade.NORMAL)
                             val palavraTexto = dados["palavra"].toString()
+                            val avatarLocal = avatarPreferences.load()
+                            val j1Id = dados["jogador1Id"]?.toString() ?: ""
+                            val avatarRemoto = if (j1Id.isNotEmpty())
+                                firestoreRepository.getAvatar(j1Id).getOrDefault(AvatarConfig())
+                            else AvatarConfig()
                             _uiState.value = _uiState.value.copy(
                                 carregando         = false,
                                 salaId             = salaId,
@@ -139,7 +154,9 @@ class MultiplayerViewModel @Inject constructor(
                                 palavraFinal       = palavraTexto,
                                 tentativasEu       = dif.tentativasMaximas,
                                 tentativasOponente = dif.tentativasMaximas,
-                                tela               = TelaMultiplayer.JOGAR
+                                tela               = TelaMultiplayer.JOGAR,
+                                avatarConfigLocal  = avatarLocal,
+                                avatarConfigRemoto = avatarRemoto
                             )
                             escutarSala(salaId)
                         },
@@ -165,13 +182,15 @@ class MultiplayerViewModel @Inject constructor(
         salaJob?.cancel()
         salaJob = viewModelScope.launch {
             firestoreRepository.escutarSala(salaId).collect { dados ->
-                val status       = dados["status"].toString()
+                val status           = dados["status"].toString()
                 val palavraFirestore = dados["palavra"].toString()
                 val temaFirestore    = dados["tema"].toString()
-                val turnoAtual   = (dados["turnoAtual"] as? Long)?.toInt() ?: 1
-                val letrasReveladas = (dados["letrasReveladas"]?.toString() ?: "")
+                val turnoAtual       = (dados["turnoAtual"] as? Long)?.toInt() ?: 1
+                val letrasReveladas  = (dados["letrasReveladas"]?.toString() ?: "")
                     .filter { it.isLetter() }.toSet()
-                val progresso    = dados["progresso"]?.toString() ?: ""
+                val progresso        = dados["progresso"]?.toString() ?: ""
+                val aceite1          = dados["aceiteRevanche1"] as? Boolean ?: false
+                val aceite2          = dados["aceiteRevanche2"] as? Boolean ?: false
 
                 val jogadorNumero  = _uiState.value.jogadorNumero
                 val numOponente    = if (jogadorNumero == 1) 2 else 1
@@ -185,8 +204,8 @@ class MultiplayerViewModel @Inject constructor(
                     .filter { it.isLetter() }.toSet()
                 val letrasErradasOponente = (dados["letrasErradas$numOponente"]?.toString() ?: "")
                     .filter { it.isLetter() }.toSet()
-                val meuTurno   = turnoAtual == jogadorNumero
-                val terminei   = tentativasEu <= 0
+                val meuTurno = turnoAtual == jogadorNumero
+                val terminei = tentativasEu <= 0
 
                 // Detectar reinício de sala — palavra mudou
                 val palavraAnterior = _uiState.value.palavra
@@ -210,7 +229,9 @@ class MultiplayerViewModel @Inject constructor(
                         turnoAtual            = turnoAtual,
                         meuTurno              = meuTurno,
                         terminei              = false,
-                        euVenci               = false
+                        euVenci               = false,
+                        aceiteRevanche1       = false,
+                        aceiteRevanche2       = false
                     )
                     if (meuTurno) iniciarTimer()
                     return@collect
@@ -233,7 +254,9 @@ class MultiplayerViewModel @Inject constructor(
                     letrasErradasEu       = letrasErradasEu,
                     letrasErradasOponente = letrasErradasOponente,
                     terminei              = terminei,
-                    codigoSala            = dados["codigo"]?.toString() ?: _uiState.value.codigoSala
+                    codigoSala            = dados["codigo"]?.toString() ?: _uiState.value.codigoSala,
+                    aceiteRevanche1       = aceite1,
+                    aceiteRevanche2       = aceite2
                 )
 
                 // Jogador 1 aguardando: jogador 2 entrou
@@ -241,10 +264,16 @@ class MultiplayerViewModel @Inject constructor(
                     telaAtual == TelaMultiplayer.AGUARDAR &&
                     dados["jogador2Id"] != null
                 ) {
+                    val j2Id = dados["jogador2Id"].toString()
                     _uiState.value = _uiState.value.copy(
                         jogador2Nome = dados["jogador2Nome"]?.toString() ?: "Oponente",
                         tela = TelaMultiplayer.JOGAR
                     )
+                    viewModelScope.launch {
+                        val avatarRemoto = firestoreRepository.getAvatar(j2Id)
+                            .getOrDefault(AvatarConfig())
+                        _uiState.value = _uiState.value.copy(avatarConfigRemoto = avatarRemoto)
+                    }
                     if (meuTurno) iniciarTimer()
                 }
 
@@ -262,6 +291,16 @@ class MultiplayerViewModel @Inject constructor(
                         euVenci      = vencedorId == auth.currentUser?.uid,
                         palavraFinal = palavraFirestore
                     )
+                }
+
+                // Ambos aceitaram revanche
+                if (aceite1 && aceite2 && _uiState.value.tela == TelaMultiplayer.RESULTADO) {
+                    viewModelScope.launch {
+                        firestoreRepository.resetarAceites(salaId)
+                        if (jogadorNumero == 1) {
+                            jogarNovamenteMesmoTema()
+                        }
+                    }
                 }
             }
         }
@@ -349,6 +388,24 @@ class MultiplayerViewModel @Inject constructor(
         val proximoTurno = if (_uiState.value.turnoAtual == 1) 2 else 1
         viewModelScope.launch {
             firestoreRepository.passarTurno(_uiState.value.salaId, proximoTurno)
+        }
+    }
+
+    fun cancelarSala() {
+        val salaId = _uiState.value.salaId
+        if (salaId.isEmpty()) return
+        viewModelScope.launch {
+            firestoreRepository.cancelarSala(salaId)
+            _uiState.value = MultiplayerUiState()
+        }
+    }
+
+    fun aceitarRevanche() {
+        val salaId = _uiState.value.salaId
+        if (salaId.isEmpty()) return
+        val numero = _uiState.value.jogadorNumero
+        viewModelScope.launch {
+            firestoreRepository.aceitarReversa(salaId, numero)
         }
     }
 

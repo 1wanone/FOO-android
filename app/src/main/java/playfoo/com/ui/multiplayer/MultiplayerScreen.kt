@@ -7,10 +7,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -20,6 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -27,10 +30,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import playfoo.com.data.TemaDataSource
 import playfoo.com.domain.Dificuldade
 import playfoo.com.ui.components.*
+import playfoo.com.ui.game.GameBackgroundMultiplayer
+import playfoo.com.ui.game.components.EstadoAvatar
 import playfoo.com.ui.game.components.ProgressoPalavra
 import playfoo.com.ui.game.components.TecladoLetras
 import playfoo.com.ui.theme.*
@@ -79,7 +85,13 @@ fun MultiplayerScreen(
                     onCriar    = viewModel::criarSala,
                     onVoltar   = { viewModel.irPara(TelaMultiplayer.INICIAL) }
                 )
-                TelaMultiplayer.AGUARDAR -> TelaAguardar(uiState = uiState)
+                TelaMultiplayer.AGUARDAR -> TelaAguardar(
+                    uiState   = uiState,
+                    onCancelar = {
+                        viewModel.cancelarSala()
+                        onVoltar()
+                    }
+                )
                 TelaMultiplayer.ENTRAR   -> TelaEntrar(
                     carregando   = uiState.carregando,
                     erro         = uiState.erro,
@@ -92,12 +104,10 @@ fun MultiplayerScreen(
                     onLetra = viewModel::tentarLetra
                 )
                 TelaMultiplayer.RESULTADO -> TelaResultado(
-                    euVenci          = uiState.euVenci,
-                    palavraFinal     = uiState.palavraFinal,
-                    tema             = uiState.tema,
-                    onJogarMesmoTema = { viewModel.jogarNovamenteMesmoTema() },
-                    onEscolherTema   = { viewModel.irPara(TelaMultiplayer.ESCOLHER_TEMA) },
-                    onVoltar         = { viewModel.reiniciar(); onVoltar() }
+                    uiState           = uiState,
+                    onAceitarRevanche = { viewModel.aceitarRevanche() },
+                    onEscolherTema    = { viewModel.irPara(TelaMultiplayer.ESCOLHER_TEMA) },
+                    onVoltar          = { viewModel.reiniciar(); onVoltar() }
                 )
                 TelaMultiplayer.ESCOLHER_TEMA -> TelaEscolherTema(
                     onTemaEscolhido = { temaId -> viewModel.escolherTema(temaId) },
@@ -235,47 +245,103 @@ private fun TelaCriar(
 // ── TELA AGUARDAR ────────────────────────────────────────────────────────────
 
 @Composable
-private fun TelaAguardar(uiState: MultiplayerUiState) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement   = Arrangement.Center,
-        horizontalAlignment   = Alignment.CenterHorizontally
-    ) {
-        CardCartoon(modifier = Modifier.fillMaxWidth()) {
+private fun TelaAguardar(
+    uiState: MultiplayerUiState,
+    onCancelar: () -> Unit
+) {
+    var mostrarConfirmacaoSair by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        HeaderFoo(titulo = "", onVoltar = { mostrarConfirmacaoSair = true })
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement   = Arrangement.Center,
+            horizontalAlignment   = Alignment.CenterHorizontally
+        ) {
+            CardCartoon(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier            = Modifier.fillMaxWidth()
+                ) {
+                    FooIcone(FooIcones.Multi, cor = Ciano, tamanho = 40.dp)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text  = "Código da Sala",
+                        color = Color.White.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text          = uiState.codigoSala,
+                        color         = Ciano,
+                        fontWeight    = FontWeight.Bold,
+                        fontSize      = 48.sp,
+                        letterSpacing = 8.sp
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text      = "Compartilhe este código com seu amigo",
+                        color     = Color.White.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center,
+                        style     = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(Modifier.height(24.dp))
+                    CircularProgressIndicator(color = Ciano, modifier = Modifier.size(40.dp))
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text  = "Aguardando oponente entrar...",
+                        color = Color.White.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+    }
+
+    if (mostrarConfirmacaoSair) {
+        Dialog(onDismissRequest = { mostrarConfirmacaoSair = false }) {
             Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(FundoCard)
+                    .border(2.dp, ErroVermelho, RoundedCornerShape(20.dp))
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier            = Modifier.fillMaxWidth()
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                FooIcone(FooIcones.Multi, cor = Ciano, tamanho = 40.dp)
-                Spacer(Modifier.height(8.dp))
+                FooIcone(FooIcones.Aviso, cor = ErroVermelho, tamanho = 48.dp)
                 Text(
-                    text  = "Código da Sala",
-                    color = Color.White.copy(alpha = 0.7f),
-                    style = MaterialTheme.typography.bodyMedium
+                    "Cancelar partida?",
+                    color = ErroVermelho,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 20.sp
                 )
-                Spacer(Modifier.height(4.dp))
                 Text(
-                    text          = uiState.codigoSala,
-                    color         = Ciano,
-                    fontWeight    = FontWeight.Bold,
-                    fontSize      = 48.sp,
-                    letterSpacing = 8.sp
+                    "A sala será encerrada e o oponente não poderá entrar.",
+                    color = TextoSecundario,
+                    textAlign = TextAlign.Center
                 )
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    text      = "Compartilhe este código com seu amigo",
-                    color     = Color.White.copy(alpha = 0.6f),
-                    textAlign = TextAlign.Center,
-                    style     = MaterialTheme.typography.bodySmall
-                )
-                Spacer(Modifier.height(24.dp))
-                CircularProgressIndicator(color = Ciano, modifier = Modifier.size(40.dp))
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text  = "Aguardando oponente entrar...",
-                    color = Color.White.copy(alpha = 0.7f),
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    BotaoCartoon(
+                        texto    = "Continuar",
+                        onClick  = { mostrarConfirmacaoSair = false },
+                        tipo     = BotaoCartoonTipo.PRIMARIO,
+                        modifier = Modifier.weight(1f)
+                    )
+                    BotaoCartoon(
+                        texto    = "Sair",
+                        onClick  = {
+                            mostrarConfirmacaoSair = false
+                            onCancelar()
+                        },
+                        tipo     = BotaoCartoonTipo.PERIGO,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
@@ -362,182 +428,156 @@ private fun TelaJogar(
     uiState: MultiplayerUiState,
     onLetra: (Char) -> Unit
 ) {
-    val maxTentativas      = uiState.dificuldade.tentativasMaximas
+    val maxSegundos = when (uiState.dificuldade) {
+        Dificuldade.FACIL   -> 30f
+        Dificuldade.NORMAL  -> 20f
+        Dificuldade.DIFICIL -> 10f
+    }
+    val nomeLocal  = if (uiState.jogadorNumero == 1) uiState.jogador1Nome else uiState.jogador2Nome
+    val nomeRemoto = if (uiState.jogadorNumero == 1) uiState.jogador2Nome else uiState.jogador1Nome
     val todasLetrasErradas = uiState.letrasErradasEu + uiState.letrasErradasOponente
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // Header: tema + dificuldade
-        CardCartoon(modifier = Modifier.fillMaxWidth(), padding = 10.dp) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text       = uiState.tema,
-                    color      = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    style      = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = when (uiState.dificuldade) {
-                        Dificuldade.FACIL   -> "Fácil"
-                        Dificuldade.NORMAL  -> "Normal"
-                        Dificuldade.DIFICIL -> "Difícil"
-                    },
-                    color      = Rosa,
-                    fontWeight = FontWeight.Bold,
-                    style      = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
+    val estadoAvatarLocal = if (uiState.terminei) EstadoAvatar.DERROTA else EstadoAvatar.NEUTRO
+    val estadoAvatarRemoto = EstadoAvatar.NEUTRO
 
-        // Indicador de turno
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            if (uiState.meuTurno) {
-                Text("Seu turno!", color = Ciano, fontWeight = FontWeight.Bold)
-            } else {
-                Text("Vez do oponente...", color = Color.White.copy(alpha = 0.6f))
-            }
-        }
+    val difLabel = when (uiState.dificuldade) {
+        Dificuldade.FACIL   -> "Fácil"
+        Dificuldade.NORMAL  -> "Normal"
+        Dificuldade.DIFICIL -> "Difícil"
+    }
 
-        // Timer visual
-        if (uiState.meuTurno && uiState.timerAtivo) {
-            val corTimer = when {
-                uiState.timerSegundos <= 5  -> ErroVermelho
-                uiState.timerSegundos <= 10 -> Color(0xFFFF9800)
-                else                        -> Ciano
-            }
-            CardCartoon(modifier = Modifier.fillMaxWidth(), padding = 8.dp) {
-                Row(
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier              = Modifier.fillMaxWidth()
-                ) {
-                    FooIcone(FooIcones.Tempo, cor = corTimer, tamanho = 16.dp)
-                    Text(
-                        " ${uiState.timerSegundos}s",
-                        color      = corTimer,
-                        fontWeight = FontWeight.Bold,
-                        fontSize   = 20.sp
-                    )
-                }
-                Spacer(Modifier.height(4.dp))
-                LinearProgressIndicator(
-                    progress = {
-                        val max = when (uiState.dificuldade) {
-                            Dificuldade.FACIL   -> 30f
-                            Dificuldade.NORMAL  -> 20f
-                            Dificuldade.DIFICIL -> 10f
-                        }
-                        uiState.timerSegundos / max
-                    },
-                    modifier   = Modifier.fillMaxWidth().height(6.dp),
-                    color      = corTimer,
-                    trackColor = Color.White.copy(alpha = 0.2f)
-                )
-            }
-        }
+    Column(modifier = Modifier.fillMaxSize()) {
+        HeaderFoo(titulo = "${uiState.tema} — $difLabel")
 
-        // Placar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
         ) {
-            CardCartoon(modifier = Modifier.weight(1f), corBorda = AzulCinza, padding = 10.dp) {
-                Text(
-                    text      = if (uiState.jogadorNumero == 1) uiState.jogador1Nome else uiState.jogador2Nome,
-                    color     = AzulCinza,
-                    fontWeight = FontWeight.Bold,
-                    fontSize  = 13.sp,
-                    maxLines  = 1
-                )
-                Text("Você", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
-                Spacer(Modifier.height(4.dp))
-                CoracoesRow(restantes = uiState.tentativasEu, maximas = maxTentativas)
-            }
-            CardCartoon(modifier = Modifier.weight(1f), corBorda = ErroVermelho, padding = 10.dp) {
-                Text(
-                    text      = if (uiState.jogadorNumero == 1) uiState.jogador2Nome else uiState.jogador1Nome,
-                    color     = ErroVermelho,
-                    fontWeight = FontWeight.Bold,
-                    fontSize  = 13.sp,
-                    maxLines  = 1
-                )
-                Text("Oponente", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
-                Spacer(Modifier.height(4.dp))
-                CoracoesRow(restantes = uiState.tentativasOponente, maximas = maxTentativas)
-            }
-        }
+            GameBackgroundMultiplayer(
+                avatarConfigLocal  = uiState.avatarConfigLocal,
+                estadoLocal        = estadoAvatarLocal,
+                avatarConfigRemoto = uiState.avatarConfigRemoto,
+                estadoRemoto       = estadoAvatarRemoto,
+                modifier           = Modifier.fillMaxSize()
+            )
 
-        // Palavra compartilhada
-        CardCartoon(modifier = Modifier.fillMaxWidth(), padding = 12.dp) {
-            if (uiState.progresso.isNotBlank()) {
-                ProgressoPalavra(progresso = uiState.progresso)
-            } else {
-                Box(
-                    modifier = Modifier.fillMaxWidth().height(40.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = Rosa, modifier = Modifier.size(24.dp))
-                }
-            }
-        }
-
-        // Sem tentativas
-        if (uiState.terminei) {
-            CardCartoon(modifier = Modifier.fillMaxWidth(), corBorda = Color(0xFFFF9800)) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier            = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        verticalAlignment     = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        FooIcone(FooIcones.Caveira, cor = Color(0xFFFF9800), tamanho = 18.dp)
-                        Text(
-                            text       = "Sem tentativas!",
-                            color      = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .align(Alignment.TopCenter)
+            ) {
+                // Timer
+                if (uiState.timerAtivo) {
+                    val corTimer = when {
+                        uiState.timerSegundos <= 5  -> ErroVermelho
+                        uiState.timerSegundos <= 10 -> Color(0xFFFF9800)
+                        else                        -> Ciano
                     }
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text     = "Aguardando resultado final...",
-                        color    = Color.White.copy(alpha = 0.6f),
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center
+                    LinearProgressIndicator(
+                        progress = { uiState.timerSegundos / maxSegundos },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color      = corTimer,
+                        trackColor = RoxoMedio
+                    )
+                    Spacer(Modifier.height(6.dp))
+                }
+
+                // Cards dos dois jogadores lado a lado
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CardJogador(
+                        nome          = nomeLocal,
+                        progresso     = uiState.progresso,
+                        tentativas    = uiState.tentativasEu,
+                        maxTentativas = uiState.dificuldade.tentativasMaximas,
+                        ehVez         = uiState.meuTurno,
+                        modifier      = Modifier.weight(1f)
+                    )
+                    CardJogador(
+                        nome          = nomeRemoto,
+                        progresso     = uiState.progresso,
+                        tentativas    = uiState.tentativasOponente,
+                        maxTentativas = uiState.dificuldade.tentativasMaximas,
+                        ehVez         = !uiState.meuTurno,
+                        modifier      = Modifier.weight(1f)
                     )
                 }
+
+                // Palavra em progresso
+                if (uiState.progresso.isNotBlank()) {
+                    Spacer(Modifier.height(8.dp))
+                    CardCartoon(modifier = Modifier.fillMaxWidth(), padding = 10.dp) {
+                        ProgressoPalavra(progresso = uiState.progresso)
+                    }
+                }
             }
         }
 
-        TecladoLetras(
-            letrasCorretas = uiState.letrasReveladas,
-            letrasErradas  = todasLetrasErradas,
-            onLetraClick   = { if (uiState.meuTurno) onLetra(it) },
-            habilitado     = uiState.meuTurno && !uiState.terminei,
-            modifier       = Modifier.fillMaxWidth()
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(FundoTeclado)
+                .padding(horizontal = 6.dp, vertical = 8.dp)
+        ) {
+            TecladoLetras(
+                letrasCorretas = uiState.letrasReveladas,
+                letrasErradas  = todasLetrasErradas,
+                onLetraClick   = { if (uiState.meuTurno) onLetra(it) },
+                habilitado     = uiState.meuTurno && !uiState.terminei,
+                modifier       = Modifier.fillMaxWidth()
+            )
+        }
     }
 }
 
 @Composable
-private fun CoracoesRow(restantes: Int, maximas: Int) {
-    val usados = maximas - restantes
-    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        repeat(restantes.coerceAtLeast(0)) {
-            Icon(Icons.Rounded.Favorite, null, tint = Rosa, modifier = Modifier.size(14.dp))
+private fun CardJogador(
+    nome: String,
+    progresso: String,
+    tentativas: Int,
+    maxTentativas: Int,
+    ehVez: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val borderColor = if (ehVez) Rosa else RoxoMedio
+    val borderWidth = if (ehVez) 2.dp else 1.dp
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(FundoCard)
+            .border(borderWidth, borderColor, RoundedCornerShape(10.dp))
+            .padding(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text       = nome,
+            color      = if (ehVez) Rosa else TextoSecundario,
+            fontWeight = if (ehVez) FontWeight.Bold else FontWeight.Normal,
+            fontSize   = 12.sp,
+            maxLines   = 1
+        )
+        if (ehVez) {
+            Text("Seu turno!", color = Ciano, fontSize = 10.sp, fontWeight = FontWeight.Bold)
         }
-        repeat(usados.coerceAtLeast(0)) {
-            Icon(Icons.Rounded.FavoriteBorder, null, tint = AzulCinza.copy(0.4f), modifier = Modifier.size(14.dp))
+        Row(horizontalArrangement = Arrangement.Center) {
+            repeat(maxTentativas) { i ->
+                Icon(
+                    imageVector = if (i < tentativas) Icons.Rounded.Favorite
+                                  else Icons.Rounded.FavoriteBorder,
+                    contentDescription = null,
+                    tint     = if (i < tentativas) Rosa else RoxoMedio,
+                    modifier = Modifier.size(12.dp)
+                )
+            }
         }
     }
 }
@@ -546,13 +586,15 @@ private fun CoracoesRow(restantes: Int, maximas: Int) {
 
 @Composable
 private fun TelaResultado(
-    euVenci: Boolean,
-    palavraFinal: String,
-    tema: String,
-    onJogarMesmoTema: () -> Unit,
+    uiState: MultiplayerUiState,
+    onAceitarRevanche: () -> Unit,
     onEscolherTema: () -> Unit,
     onVoltar: () -> Unit
 ) {
+    val souJogador1   = uiState.jogadorNumero == 1
+    val meuAceite     = if (souJogador1) uiState.aceiteRevanche1 else uiState.aceiteRevanche2
+    val oponenteAceitou = if (souJogador1) uiState.aceiteRevanche2 else uiState.aceiteRevanche1
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -561,29 +603,29 @@ private fun TelaResultado(
         verticalArrangement = Arrangement.Center
     ) {
         FooIcone(
-            icone   = if (euVenci) FooIcones.Trofeu else FooIcones.Derrota,
-            cor     = if (euVenci) Color(0xFFFFD700) else ErroVermelho,
+            icone   = if (uiState.euVenci) FooIcones.Trofeu else FooIcones.Derrota,
+            cor     = if (uiState.euVenci) Color(0xFFFFD700) else ErroVermelho,
             tamanho = 80.dp
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text       = if (euVenci) "Você venceu!" else "Você perdeu!",
+            text       = if (uiState.euVenci) "Você venceu!" else "Você perdeu!",
             style      = MaterialTheme.typography.headlineLarge,
-            color      = if (euVenci) Color(0xFFFFD700) else ErroVermelho,
+            color      = if (uiState.euVenci) Color(0xFFFFD700) else ErroVermelho,
             fontWeight = FontWeight.Bold,
             textAlign  = TextAlign.Center
         )
         Spacer(Modifier.height(8.dp))
         Text("A palavra era:", color = Color.White.copy(alpha = 0.7f))
         Text(
-            text          = palavraFinal,
+            text          = uiState.palavraFinal,
             color         = Color.White,
             fontWeight    = FontWeight.Bold,
             fontSize      = 24.sp,
             letterSpacing = 4.sp
         )
         Text(
-            text  = "Tema: $tema",
+            text  = "Tema: ${uiState.tema}",
             color = Rosa,
             style = MaterialTheme.typography.bodyMedium
         )
@@ -598,28 +640,48 @@ private fun TelaResultado(
                     fontWeight = FontWeight.Bold,
                     fontSize   = 16.sp
                 )
-                BotaoCartoon(
-                    texto    = "Mesmo tema — $tema",
-                    icone    = FooIcones.Jogar,
-                    onClick  = onJogarMesmoTema,
-                    tipo     = BotaoCartoonTipo.PRIMARIO,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                BotaoCartoon(
-                    texto    = "Escolher outro tema",
-                    icone    = FooIcones.Multi,
-                    onClick  = onEscolherTema,
-                    tipo     = BotaoCartoonTipo.SECUNDARIO,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedButton(
-                    onClick  = onVoltar,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors   = ButtonDefaults.outlinedButtonColors(contentColor = Color.White.copy(alpha = 0.7f)),
-                    border   = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
-                ) {
-                    Text("Sair do multiplayer")
+
+                if (!meuAceite) {
+                    BotaoCartoon(
+                        texto    = "Revanche! Mesmo tema",
+                        icone    = FooIcones.Jogar,
+                        onClick  = onAceitarRevanche,
+                        tipo     = BotaoCartoonTipo.PRIMARIO,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    BotaoCartoon(
+                        texto    = "Escolher outro tema",
+                        icone    = FooIcones.Turmas,
+                        onClick  = onEscolherTema,
+                        tipo     = BotaoCartoonTipo.SECUNDARIO,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    CardCartoon(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                color    = Ciano,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Text(
+                                text = if (oponenteAceitou) "Ambos aceitaram! Iniciando..."
+                                       else "Aguardando oponente aceitar a revanche...",
+                                color     = TextoSecundario,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
+
+                BotaoCartoon(
+                    texto    = "Sair do multiplayer",
+                    onClick  = onVoltar,
+                    tipo     = BotaoCartoonTipo.NEUTRO,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
