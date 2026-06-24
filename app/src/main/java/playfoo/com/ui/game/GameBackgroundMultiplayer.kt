@@ -103,7 +103,7 @@ fun GameBackgroundMultiplayer(
         // ===== AVATAR =====
         // Mesmos cálculos do single player
 
-        val avW = (half * 0.50f).toInt()
+        val avW = (half * 0.70f).toInt()
         val avH = (avW * 2400f / 2500f).toInt()
 
         val avX = (half * 0.075f).toInt()

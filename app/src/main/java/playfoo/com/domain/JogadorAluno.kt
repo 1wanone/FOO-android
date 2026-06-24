@@ -12,7 +12,7 @@ data class JogadorAluno(
 
     override val tipo: TipoJogador = TipoJogador.ALUNO
 
-    override fun podeEntrarEmTurma(): Boolean = true
+    override fun podeEntrarEmTurma(): Boolean = true //sobreescrita, aluno não pode criar turma e so visualiza seu dashboard
 
     fun calcularTaxaVitoria(): Float =
         if (totalPartidas == 0) 0f

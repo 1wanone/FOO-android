@@ -10,7 +10,7 @@ data class JogadorGestor(
 
     override val tipo: TipoJogador = TipoJogador.GESTOR
 
-    override fun podeAcessarDashboard(): Boolean = true
-    override fun podeCriarTurma(): Boolean = true
-    override fun podeEntrarEmTurma(): Boolean = false
+    override fun podeAcessarDashboard(): Boolean = true //sobreescrita
+    override fun podeCriarTurma(): Boolean = true //sobreescrita
+    override fun podeEntrarEmTurma(): Boolean = false //sobreescrita
 }
