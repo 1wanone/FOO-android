@@ -466,7 +466,6 @@ class MultiplayerViewModel @Inject constructor(
                 novaPalavra = novaPalavra.texto,
                 novoTema    = temaAtual.nome
             )
-            // Estado atualizado pelo listener ao detectar mudança de palavra
         }
     }
 
@@ -480,7 +479,6 @@ class MultiplayerViewModel @Inject constructor(
                 novaPalavra = novaPalavra.texto,
                 novoTema    = tema.nome
             )
-            // Estado atualizado pelo listener ao detectar mudança de palavra
         }
     }
 
