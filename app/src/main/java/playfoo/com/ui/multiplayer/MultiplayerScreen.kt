@@ -12,7 +12,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -437,8 +439,20 @@ private fun TelaJogar(
     val nomeRemoto = if (uiState.jogadorNumero == 1) uiState.jogador2Nome else uiState.jogador1Nome
     val todasLetrasErradas = uiState.letrasErradasEu + uiState.letrasErradasOponente
 
-    val estadoAvatarLocal = if (uiState.terminei) EstadoAvatar.DERROTA else EstadoAvatar.NEUTRO
-    val estadoAvatarRemoto = EstadoAvatar.NEUTRO
+    val estadoAvatarLocal = when (uiState.estadoAvatarLocal) {
+        "ACERTOU" -> EstadoAvatar.ACERTOU
+        "ERROU"   -> EstadoAvatar.ERROU
+        "VITORIA" -> EstadoAvatar.VITORIA
+        "DERROTA" -> EstadoAvatar.DERROTA
+        else      -> EstadoAvatar.NEUTRO
+    }
+    val estadoAvatarRemoto = when (uiState.estadoAvatarRemoto) {
+        "ACERTOU" -> EstadoAvatar.ACERTOU
+        "ERROU"   -> EstadoAvatar.ERROU
+        "VITORIA" -> EstadoAvatar.VITORIA
+        "DERROTA" -> EstadoAvatar.DERROTA
+        else      -> EstadoAvatar.NEUTRO
+    }
 
     val difLabel = when (uiState.dificuldade) {
         Dificuldade.FACIL   -> "Fácil"
@@ -547,35 +561,55 @@ private fun CardJogador(
     modifier: Modifier = Modifier
 ) {
     val borderColor = if (ehVez) Rosa else RoxoMedio
-    val borderWidth = if (ehVez) 2.dp else 1.dp
+    val nomeColor   = if (ehVez) Rosa else TextoSecundario
 
     Column(
         modifier = modifier
+            .height(64.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(FundoCard)
-            .border(borderWidth, borderColor, RoundedCornerShape(10.dp))
-            .padding(8.dp),
+            .border(2.dp, borderColor, RoundedCornerShape(10.dp))
+            .padding(horizontal = 8.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text       = nome,
-            color      = if (ehVez) Rosa else TextoSecundario,
-            fontWeight = if (ehVez) FontWeight.Bold else FontWeight.Normal,
-            fontSize   = 12.sp,
-            maxLines   = 1
-        )
-        if (ehVez) {
-            Text("Seu turno!", color = Ciano, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            if (ehVez) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .background(Rosa, CircleShape)
+                )
+            }
+            Text(
+                text       = nome,
+                color      = nomeColor,
+                fontWeight = if (ehVez) FontWeight.Bold else FontWeight.Normal,
+                fontSize   = 12.sp,
+                maxLines   = 1,
+                overflow   = TextOverflow.Ellipsis
+            )
         }
-        Row(horizontalArrangement = Arrangement.Center) {
+        Text(
+            text       = if (ehVez) "Seu turno!" else "Oponente",
+            color      = if (ehVez) Ciano else Color.Transparent,
+            fontSize   = 10.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment     = Alignment.CenterVertically
+        ) {
             repeat(maxTentativas) { i ->
                 Icon(
                     imageVector = if (i < tentativas) Icons.Rounded.Favorite
                                   else Icons.Rounded.FavoriteBorder,
                     contentDescription = null,
-                    tint     = if (i < tentativas) Rosa else RoxoMedio,
-                    modifier = Modifier.size(12.dp)
+                    tint     = if (i < tentativas) Rosa else RoxoMedio.copy(alpha = 0.5f),
+                    modifier = Modifier.size(10.dp)
                 )
             }
         }

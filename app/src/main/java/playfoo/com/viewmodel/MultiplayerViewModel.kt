@@ -55,7 +55,10 @@ data class MultiplayerUiState(
     val aceiteRevanche2: Boolean = false,
     // Avatares
     val avatarConfigLocal: AvatarConfig = AvatarConfig(),
-    val avatarConfigRemoto: AvatarConfig = AvatarConfig()
+    val avatarConfigRemoto: AvatarConfig = AvatarConfig(),
+    // Estado visual dos avatares
+    val estadoAvatarLocal: String = "NEUTRO",
+    val estadoAvatarRemoto: String = "NEUTRO"
 )
 
 @HiltViewModel
@@ -231,15 +234,19 @@ class MultiplayerViewModel @Inject constructor(
                         terminei              = false,
                         euVenci               = false,
                         aceiteRevanche1       = false,
-                        aceiteRevanche2       = false
+                        aceiteRevanche2       = false,
+                        estadoAvatarLocal     = "NEUTRO",
+                        estadoAvatarRemoto    = "NEUTRO"
                     )
                     if (meuTurno) iniciarTimer()
                     return@collect
                 }
 
-                // Capturar turno anterior antes de atualizar estado
-                val turnoAnterior = _uiState.value.turnoAtual
-                val telaAtual     = _uiState.value.tela
+                // Capturar estado anterior antes de atualizar
+                val turnoAnterior              = _uiState.value.turnoAtual
+                val telaAtual                  = _uiState.value.tela
+                val anteriorTentativasOponente = _uiState.value.tentativasOponente
+                val anteriorProgresso          = _uiState.value.progresso
 
                 // Atualização normal
                 _uiState.value = _uiState.value.copy(
@@ -282,14 +289,41 @@ class MultiplayerViewModel @Inject constructor(
                     if (meuTurno && !terminei) iniciarTimer() else cancelarTimer()
                 }
 
+                // Detectar mudanças do oponente para animar avatar remoto
+                if (telaAtual == TelaMultiplayer.JOGAR) {
+                    when {
+                        tentativasOponente < anteriorTentativasOponente -> {
+                            _uiState.value = _uiState.value.copy(estadoAvatarRemoto = "ERROU")
+                            viewModelScope.launch {
+                                delay(1000)
+                                if (_uiState.value.estadoAvatarRemoto == "ERROU") {
+                                    _uiState.value = _uiState.value.copy(estadoAvatarRemoto = "NEUTRO")
+                                }
+                            }
+                        }
+                        progresso != anteriorProgresso && tentativasOponente == anteriorTentativasOponente -> {
+                            _uiState.value = _uiState.value.copy(estadoAvatarRemoto = "ACERTOU")
+                            viewModelScope.launch {
+                                delay(1000)
+                                if (_uiState.value.estadoAvatarRemoto == "ACERTOU") {
+                                    _uiState.value = _uiState.value.copy(estadoAvatarRemoto = "NEUTRO")
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Resultado final
                 if (status == "finalizada" && telaAtual == TelaMultiplayer.JOGAR) {
                     cancelarTimer()
                     val vencedorId = dados["vencedor"]?.toString() ?: ""
+                    val euVenci = vencedorId == auth.currentUser?.uid
                     _uiState.value = _uiState.value.copy(
-                        tela         = TelaMultiplayer.RESULTADO,
-                        euVenci      = vencedorId == auth.currentUser?.uid,
-                        palavraFinal = palavraFirestore
+                        tela               = TelaMultiplayer.RESULTADO,
+                        euVenci            = euVenci,
+                        palavraFinal       = palavraFirestore,
+                        estadoAvatarLocal  = if (euVenci) "VITORIA" else "DERROTA",
+                        estadoAvatarRemoto = if (euVenci) "DERROTA" else "VITORIA"
                     )
                 }
 
@@ -333,6 +367,17 @@ class MultiplayerViewModel @Inject constructor(
         val palavraRevelada = !novoProgresso.contains('_')
         val semTentativas   = novasTentativas <= 0
 
+        // Feedback visual imediato do avatar local
+        _uiState.value = _uiState.value.copy(
+            estadoAvatarLocal = if (acertou) "ACERTOU" else "ERROU"
+        )
+        viewModelScope.launch {
+            delay(1000)
+            if (_uiState.value.estadoAvatarLocal !in listOf("VITORIA", "DERROTA")) {
+                _uiState.value = _uiState.value.copy(estadoAvatarLocal = "NEUTRO")
+            }
+        }
+
         viewModelScope.launch {
             firestoreRepository.revelarLetra(
                 salaId          = state.salaId,
@@ -346,6 +391,7 @@ class MultiplayerViewModel @Inject constructor(
             when {
                 palavraRevelada -> {
                     cancelarTimer()
+                    _uiState.value = _uiState.value.copy(estadoAvatarLocal = "VITORIA")
                     firestoreRepository.finalizarSala(state.salaId, auth.currentUser?.uid ?: "")
                 }
                 semTentativas -> {
