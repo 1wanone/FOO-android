@@ -37,11 +37,11 @@ fun PlayerDesk(
         val W = constraints.maxWidth   // half da tela
         val H = constraints.maxHeight  // mesaY
 
-        val avW      = (W * 0.80f).toInt()
+        val avW      = (W * 0.65f).toInt()
         val avH      = (avW * 2400f / 2500f).toInt()
-        val avX      = (W * 0.02f).toInt()           // avX mínimo → mão o mais à esquerda possível
-        val cadeiraX = avX + (W * 0.03f).toInt()
-        val avY      = H - (avH * 0.50f).toInt()
+        val avX      = 0                              // avX=0 → mão em avW*0.50 = W*0.325 (mouse)
+        val cadeiraX = (W * 0.03f).toInt()
+        val avY      = H - (avH * 0.37f).toInt()
 
         val cadeira = measurables[0].measure(Constraints.fixed(avW, avH))
         val avatar  = measurables[1].measure(Constraints.fixed(avW, avH))

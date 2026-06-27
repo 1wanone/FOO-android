@@ -56,9 +56,9 @@ fun GameBackgroundMultiplayer(
         val mesaY = H - mesaH
 
         // Tamanho da mão = mesmo avW/avH usado dentro do PlayerDesk
-        val avW = (half * 0.80f).toInt()
+        val avW = (half * 0.65f).toInt()
         val avH = (avW * 2400f / 2500f).toInt()
-        val avX = (half * 0.02f).toInt()
+        val avX = 0
 
         val fundo      = measurables[0].measure(Constraints.fixed(W, H))
         val deskLocal  = measurables[1].measure(Constraints.fixed(half, mesaY))
@@ -67,7 +67,7 @@ fun GameBackgroundMultiplayer(
         val maoLocal   = measurables[4].measure(Constraints.fixed(avW, avH))
         val maoRemota  = measurables[5].measure(Constraints.fixed(avW, avH))
 
-        val avY = mesaY - (avH * 0.50f).toInt()
+        val avY = mesaY - (avH * 0.37f).toInt()
 
         layout(W, H) {
             fundo.place(0, 0)
