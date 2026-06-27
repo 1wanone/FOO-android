@@ -40,6 +40,20 @@ fun GameScreen(
     val uiState by viewModel.uiState.collectAsState()
     var mostrarConfirmacaoSair by remember { mutableStateOf(false) }
 
+    val audio = LocalAudioManager.current
+
+    // Efeitos sonoros reativos ao estado
+    val resultado = uiState.resultado
+    val estadoAvatarStr = uiState.estadoAvatar
+    LaunchedEffect(estadoAvatarStr) {
+        when (estadoAvatarStr) {
+            "ACERTOU" -> audio?.playCorrect()
+            "ERROU"   -> audio?.playErro()
+            "VITORIA" -> audio?.playVictory()
+            "DERROTA" -> audio?.playDerrota()
+        }
+    }
+
     val estadoAvatar = when (uiState.estadoAvatar) {
         "VITORIA" -> EstadoAvatar.VITORIA
         "DERROTA" -> EstadoAvatar.DERROTA
@@ -133,7 +147,7 @@ fun GameScreen(
             TecladoLetras(
                 letrasCorretas = uiState.letrasCorretas,
                 letrasErradas  = uiState.letrasErradas,
-                onLetraClick   = { viewModel.tentarLetra(it) },
+                onLetraClick   = { audio?.playClick(); viewModel.tentarLetra(it) },
                 modifier       = Modifier.fillMaxWidth()
             )
         }

@@ -41,6 +41,8 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -64,6 +66,8 @@ import playfoo.com.ui.components.BotaoCartoonTipo
 import playfoo.com.ui.components.CardCartoon
 import playfoo.com.ui.components.FundoTela
 import playfoo.com.ui.components.TipoFundo
+import playfoo.com.ui.game.AudioManager
+import playfoo.com.ui.game.LocalAudioManager
 import playfoo.com.ui.game.components.ProgressoPalavra
 import playfoo.com.ui.game.components.TecladoLetras
 import playfoo.com.viewmodel.MultiplayerUiState
@@ -76,6 +80,8 @@ fun MultiplayerScreen(
     viewModel: MultiplayerViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val audio = LocalAudioManager.current
 
     BackHandler(
         enabled = uiState.tela == TelaMultiplayer.CRIAR ||
@@ -121,7 +127,8 @@ fun MultiplayerScreen(
                 )
                 TelaMultiplayer.JOGAR    -> TelaJogar(
                     uiState = uiState,
-                    onLetra = viewModel::tentarLetra
+                    onLetra = viewModel::tentarLetra,
+                    audio   = audio
                 )
                 TelaMultiplayer.RESULTADO -> TelaResultado(
                     euVenci          = uiState.euVenci,
@@ -410,7 +417,8 @@ private fun TelaEntrar(
 @Composable
 private fun TelaJogar(
     uiState: MultiplayerUiState,
-    onLetra: (Char) -> Unit
+    onLetra: (Char) -> Unit,
+    audio: AudioManager?
 ) {
     val maxTentativas = uiState.dificuldade.tentativasMaximas
 
@@ -432,6 +440,15 @@ private fun TelaJogar(
     val nomeLocal  = if (uiState.jogadorNumero == 1) uiState.jogador1Nome else uiState.jogador2Nome
     val nomeRemoto = if (uiState.jogadorNumero == 1) uiState.jogador2Nome else uiState.jogador1Nome
     val todasLetrasErradas = uiState.letrasErradasEu + uiState.letrasErradasOponente
+
+    LaunchedEffect(uiState.estadoAvatarLocal) {
+        when (uiState.estadoAvatarLocal) {
+            "ACERTOU" -> audio?.playCorrect()
+            "ERROU"   -> audio?.playErro()
+            "VITORIA" -> audio?.playVictory()
+            "DERROTA" -> audio?.playDerrota()
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
 
@@ -564,7 +581,7 @@ private fun TelaJogar(
             TecladoLetras(
                 letrasCorretas = uiState.letrasReveladas,
                 letrasErradas  = todasLetrasErradas,
-                onLetraClick   = { if (uiState.meuTurno) onLetra(it) },
+                onLetraClick   = { if (uiState.meuTurno) { audio?.playClick(); onLetra(it) } },
                 habilitado     = uiState.meuTurno && !uiState.terminei,
                 modifier       = Modifier.fillMaxWidth()
             )

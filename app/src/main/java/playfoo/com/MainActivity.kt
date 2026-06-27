@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -16,9 +17,16 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import playfoo.com.domain.TipoUsuario
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import playfoo.com.ui.auth.LoginScreen
 import playfoo.com.ui.dashboard.DashboardScreen
+import playfoo.com.ui.game.AudioManager
 import playfoo.com.ui.game.GameScreen
+import playfoo.com.ui.game.LocalAudioManager
+import playfoo.com.ui.game.rememberAudioManager
 import playfoo.com.ui.menu.MenuScreen
 import playfoo.com.ui.multiplayer.MultiplayerScreen
 import playfoo.com.ui.perfil.PerfilScreen
@@ -45,6 +53,21 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ForcaNavHost() {
     val navController = rememberNavController()
+    val audio = rememberAudioManager()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val obs = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> audio.iniciarMusica()
+                Lifecycle.Event.ON_PAUSE  -> audio.pausarMusica()
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+    }
+
+    CompositionLocalProvider(LocalAudioManager provides audio) {
     NavHost(navController = navController, startDestination = "login") {
         composable(
             route = "menu?tipo={tipo}",
@@ -85,4 +108,5 @@ fun ForcaNavHost() {
             OpcoesScreen(navController = navController)
         }
     }
+    } // CompositionLocalProvider
 }
