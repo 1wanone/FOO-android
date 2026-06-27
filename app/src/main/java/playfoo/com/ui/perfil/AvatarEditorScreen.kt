@@ -33,8 +33,8 @@ import playfoo.com.ui.perfil.components.RodaDeCores
 import playfoo.com.ui.theme.*
 
 private val TONS_DE_PELE = listOf(
-    "pele_branca" to Color(0xFFFFF2E0),
-    "base_rosa"   to Color(0xFFFFD8B8),
+    "pele_branca" to Color(0xFFFFD8B8),
+    "base_rosa"   to Color(0xFFFFF2E0),
     "pele_parda"  to Color(0xFFD4975A),
     "pele_negra"  to Color(0xFF9B5C30)
 )
@@ -70,21 +70,6 @@ fun AvatarEditorScreen(
             .fillMaxSize()
             .background(RoxoEscuro)
     ) {
-        // ── Título ──────────────────────────────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text       = "Personalizar Avatar",
-                style      = MaterialTheme.typography.titleLarge,
-                color      = Color.White,
-                fontWeight = FontWeight.ExtraBold
-            )
-        }
-
         // ── Preview fixo do avatar ──────────────────────────────────────
         Box(
             modifier = Modifier

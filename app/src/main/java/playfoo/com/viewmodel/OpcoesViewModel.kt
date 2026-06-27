@@ -15,16 +15,11 @@ class OpcoesViewModel @Inject constructor(
     private val soundPrefs: SoundPreferences
 ) : ViewModel() {
 
-    private val _altoContraste = MutableStateFlow(false)
-    val altoContraste: StateFlow<Boolean> = _altoContraste.asStateFlow()
-
     private val _efeitosSonoros = MutableStateFlow(soundPrefs.getEfeitosSonoros())
     val efeitosSonoros: StateFlow<Boolean> = _efeitosSonoros.asStateFlow()
 
     private val _musicaFundo = MutableStateFlow(soundPrefs.getMusicaFundo())
     val musicaFundo: StateFlow<Boolean> = _musicaFundo.asStateFlow()
-
-    fun toggleAltoContraste() { _altoContraste.value = !_altoContraste.value }
 
     fun toggleEfeitosSonoros(): Boolean {
         val novo = !_efeitosSonoros.value
