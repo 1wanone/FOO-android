@@ -1,9 +1,7 @@
 package playfoo.com.ui.dashboard
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +21,7 @@ import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.components.Legend
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import playfoo.com.domain.PalavraFrequencia
 import playfoo.com.domain.TipoUsuario
 import playfoo.com.ui.components.*
 import playfoo.com.ui.theme.*
@@ -133,12 +132,13 @@ fun DashboardScreen(
                             GraficoPizza(
                                 dados = uiState.estatisticasPorTema.map {
                                     it.nome to it.totalPartidas.toFloat()
-                                }
+                                },
+                                totalPartidas = uiState.totalPartidas
                             )
                         }
                     }
 
-                    // Gráfico de barras
+                    // Gráfico de barras agrupado (vitórias + derrotas)
                     if (uiState.estatisticasPorTema.isNotEmpty()) {
                         CardCartoon(modifier = Modifier.fillMaxWidth()) {
                             Row(
@@ -146,17 +146,18 @@ fun DashboardScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 FooIcone(FooIcones.Meta, cor = Ciano, tamanho = 18.dp)
-                                Text("Taxa de Vitória por Tema", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text("Vitórias e Derrotas por Tema", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             }
                             Spacer(Modifier.height(8.dp))
-                            GraficoBarras(
-                                labels  = uiState.estatisticasPorTema.map { e -> if (e.nome.length > 5) e.nome.take(5) + "." else e.nome },
-                                valores = uiState.estatisticasPorTema.map { it.taxaVitoria }
+                            GraficoBarrasAgrupado(
+                                labels   = uiState.estatisticasPorTema.map { e -> if (e.nome.length > 5) e.nome.take(5) + "." else e.nome },
+                                vitorias = uiState.estatisticasPorTema.map { it.totalVitorias.toFloat() },
+                                derrotas = uiState.estatisticasPorTema.map { it.totalDerrotas.toFloat() }
                             )
                         }
                     }
 
-                    // Nuvem de palavras
+                    // Nuvem de palavras (mesmo componente do perfil)
                     if (uiState.palavrasMaisDificeis.isNotEmpty()) {
                         CardCartoon(modifier = Modifier.fillMaxWidth()) {
                             Row(
@@ -167,7 +168,12 @@ fun DashboardScreen(
                                 Text("Palavras mais difíceis", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             }
                             Spacer(Modifier.height(8.dp))
-                            NuvemPalavras(palavras = uiState.palavrasMaisDificeis)
+                            NuvemPalavras(
+                                palavras = uiState.palavrasMaisDificeis.map {
+                                    PalavraFrequencia(it.palavra, it.totalErros)
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
 
@@ -209,21 +215,17 @@ private fun CardResumo(
     cor: Color,
     modifier: Modifier = Modifier
 ) {
-    CardCartoon(
-        modifier  = modifier,
-        corBorda  = cor,
-        padding   = 12.dp
-    ) {
+    CardCartoon(modifier = modifier, padding = 8.dp, corBorda = Rosa, corFundo = RoxoEscuro, raio = 8.dp) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            FooIcone(icone = icone, cor = cor, tamanho = 26.dp)
-            Text(text = valor, color = cor, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+            FooIcone(icone = icone, cor = Rosa, tamanho = 22.dp)
+            Text(text = valor, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             Text(text = label, color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
         }
     }
 }
 
 @Composable
-private fun GraficoPizza(dados: List<Pair<String, Float>>) {
+private fun GraficoPizza(dados: List<Pair<String, Float>>, totalPartidas: Int) {
     val cores = listOf(
         Rosa, Ciano, RoxoMedio, ErroVermelho, AzulCinza, Pink,
         Color(0xFFFFEB3B), Color(0xFF9C27B0), Color(0xFF607D8B)
@@ -232,49 +234,57 @@ private fun GraficoPizza(dados: List<Pair<String, Float>>) {
         factory = { context ->
             PieChart(context).apply {
                 description.isEnabled = false
-                isDrawHoleEnabled = true
-                holeRadius = 40f
+                isDrawHoleEnabled     = true
+                holeRadius            = 40f
                 setHoleColor(android.graphics.Color.TRANSPARENT)
                 legend.apply {
-                    isEnabled = true
-                    textColor = android.graphics.Color.WHITE
-                    textSize  = 10f
+                    isEnabled           = true
+                    textColor           = android.graphics.Color.WHITE
+                    textSize            = 10f
                     orientation         = Legend.LegendOrientation.VERTICAL
                     horizontalAlignment = Legend.LegendHorizontalAlignment.RIGHT
                 }
                 setEntryLabelColor(android.graphics.Color.WHITE)
                 setEntryLabelTextSize(10f)
+                setCenterTextColor(android.graphics.Color.WHITE)
+                setCenterTextSize(12f)
             }
         },
         update = { chart ->
             val entries = dados.map { (label, value) ->
-                PieEntry(value, if (label.length > 8) label.take(8) else label)
+                PieEntry(value, if (label.length > 7) label.take(7) else label)
             }
             val dataSet = PieDataSet(entries, "").apply {
-                colors          = cores.map { it.toArgb() }
-                valueTextColor  = android.graphics.Color.WHITE
-                valueTextSize   = 11f
+                colors         = cores.map { it.toArgb() }
+                valueTextColor = android.graphics.Color.WHITE
+                valueTextSize  = 11f
             }
-            chart.data = PieData(dataSet)
+            chart.data       = PieData(dataSet)
+            chart.centerText = "$totalPartidas\npartidas"
             chart.invalidate()
         },
-        modifier = Modifier.fillMaxWidth().height(250.dp)
+        modifier = Modifier.fillMaxWidth().height(220.dp)
     )
 }
 
 @Composable
-private fun GraficoBarras(labels: List<String>, valores: List<Float>) {
+private fun GraficoBarrasAgrupado(
+    labels: List<String>,
+    vitorias: List<Float>,
+    derrotas: List<Float>
+) {
+    val intFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+        override fun getFormattedValue(value: Float) = value.toInt().toString()
+    }
     AndroidView(
         factory = { context ->
             BarChart(context).apply {
                 description.isEnabled = false
-                legend.isEnabled = false
-                axisRight.isEnabled = false
+                axisRight.isEnabled   = false
                 axisLeft.apply {
                     textColor    = android.graphics.Color.WHITE
-                    axisMinimum = 0f
-                    axisMaximum = 100f
-                    gridColor   = android.graphics.Color.argb(50, 255, 255, 255)
+                    axisMinimum  = 0f
+                    gridColor    = android.graphics.Color.argb(50, 255, 255, 255)
                 }
                 xAxis.apply {
                     textColor          = android.graphics.Color.WHITE
@@ -282,55 +292,47 @@ private fun GraficoBarras(labels: List<String>, valores: List<Float>) {
                     setDrawGridLines(false)
                     position           = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
                     labelRotationAngle = -45f
+                    setCenterAxisLabels(true)
+                }
+                legend.apply {
+                    isEnabled  = true
+                    textColor  = android.graphics.Color.WHITE
+                    textSize   = 11f
                 }
                 setExtraBottomOffset(20f)
                 setTouchEnabled(false)
             }
         },
         update = { chart ->
-            val entries = valores.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
-            val dataSet = BarDataSet(entries, "Taxa de Vitória %").apply {
+            val entriesVitorias = vitorias.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
+            val entriesDerrotas = derrotas.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
+            val dsVitorias = BarDataSet(entriesVitorias, "Vitórias").apply {
                 color          = Rosa.toArgb()
                 valueTextColor = android.graphics.Color.WHITE
                 valueTextSize  = 10f
-                valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
-                    override fun getFormattedValue(value: Float) = value.toInt().toString()
-                }
+                valueFormatter = intFormatter
+            }
+            val dsDerrotas = BarDataSet(entriesDerrotas, "Derrotas").apply {
+                color          = AzulCinza.toArgb()
+                valueTextColor = android.graphics.Color.WHITE
+                valueTextSize  = 10f
+                valueFormatter = intFormatter
+            }
+            val groupCount   = labels.size.toFloat()
+            val groupSpace   = 0.15f
+            val barSpace     = 0.03f
+            val barWidth     = 0.35f
+            val barData = BarData(dsVitorias, dsDerrotas).apply {
+                this.barWidth = barWidth
             }
             chart.xAxis.valueFormatter = IndexAxisValueFormatter(labels.toTypedArray())
-            chart.data = BarData(dataSet)
+            chart.xAxis.axisMinimum    = 0f
+            chart.xAxis.axisMaximum    = groupCount
+            chart.data = barData
+            chart.groupBars(0f, groupSpace, barSpace)
             chart.invalidate()
         },
         modifier = Modifier.fillMaxWidth().height(260.dp)
     )
 }
 
-@Composable
-private fun NuvemPalavras(palavras: List<playfoo.com.viewmodel.EstatisticaPalavra>) {
-    val maxErros = palavras.maxOfOrNull { it.totalErros }?.toFloat() ?: 1f
-    FlowRow(
-        modifier              = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement   = Arrangement.spacedBy(8.dp)
-    ) {
-        palavras.forEach { palavra ->
-            val tamanho = 12 + (palavra.totalErros.toFloat() / maxErros * 16).toInt()
-            val alpha   = 0.5f + (palavra.totalErros.toFloat() / maxErros * 0.5f)
-            Box(
-                modifier = Modifier
-                    .background(
-                        ErroVermelho.copy(alpha = alpha),
-                        RoundedCornerShape(20.dp)
-                    )
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    text       = palavra.palavra,
-                    color      = Color.White,
-                    fontSize   = tamanho.sp,
-                    fontWeight = if (tamanho > 20) FontWeight.Bold else FontWeight.Normal
-                )
-            }
-        }
-    }
-}

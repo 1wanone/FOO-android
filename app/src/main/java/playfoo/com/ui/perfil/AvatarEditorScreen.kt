@@ -20,34 +20,41 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import playfoo.com.domain.AvatarConfig
+import playfoo.com.domain.corCamisaColor
+import playfoo.com.domain.parseHexCor
+import playfoo.com.domain.toHexCor
 import playfoo.com.ui.components.BotaoCartoon
 import playfoo.com.ui.components.BotaoCartoonTipo
 import playfoo.com.ui.components.FooIcone
 import playfoo.com.ui.components.FooIcones
 import playfoo.com.ui.game.components.AvatarView
 import playfoo.com.ui.game.components.EstadoAvatar
+import playfoo.com.ui.perfil.components.RodaDeCores
 import playfoo.com.ui.theme.*
 
 private val TONS_DE_PELE = listOf(
-    "pele_branca" to Color(0xFFFFDBAC),
-    "base_rosa"   to Color(0xFFF4A986),
-    "pele_parda"  to Color(0xFFC68642),
-    "pele_negra"  to Color(0xFF5C3317)
+    "pele_branca" to Color(0xFFFFF2E0),
+    "base_rosa"   to Color(0xFFFFD8B8),
+    "pele_parda"  to Color(0xFFD4975A),
+    "pele_negra"  to Color(0xFF9B5C30)
 )
 
 private val CORES_CABELO = listOf(
     "preto"    to Color(0xFF1A1A1A),
-    "castanho" to Color(0xFF6B3A2A),
-    "loiro"    to Color(0xFFE8C84A),
-    "ruivo"    to Color(0xFFB5390A)
+    "castanho" to Color(0xFF5C2E0E),
+    "loiro"    to Color(0xFFDDB836),
+    "ruivo"    to Color(0xFFCC3D00)
 )
 
 private val ESTILOS_CABELO = listOf("curto", "liso", "afro", "fade")
 
-private val CAMISAS = listOf(
-    Triple("maniva", Color(0xFF1B4E2D), "Maniva Lab"),
-    Triple("divas",  Color(0xFF4A1080), "Divas Digitais")
+private val MODELOS_CAMISA = listOf(
+    "maniva"        to "Maniva Lab",
+    "divas"         to "Divas Digitais",
+    "personalizada" to "Personalizada"
 )
+
+private enum class AbaEditor { PELE, CABELO, CAMISA }
 
 @Composable
 fun AvatarEditorScreen(
@@ -55,159 +62,224 @@ fun AvatarEditorScreen(
     onSalvar: (AvatarConfig) -> Unit = {}
 ) {
     var config by remember { mutableStateOf(avatarAtual) }
+    var abaAtiva by remember { mutableStateOf(AbaEditor.PELE) }
     var mostrarConfirmacaoSalvar by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(RoxoEscuro)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Text(
-            text  = "Personalizar Avatar",
-            style = MaterialTheme.typography.headlineMedium,
-            color = Color.White,
-            fontWeight = FontWeight.ExtraBold
-        )
-
-        // Preview do avatar
+        // ── Título ──────────────────────────────────────────────────────
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
-                .clip(RoundedCornerShape(20.dp))
+                .padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text       = "Personalizar Avatar",
+                style      = MaterialTheme.typography.titleLarge,
+                color      = Color.White,
+                fontWeight = FontWeight.ExtraBold
+            )
+        }
+
+        // ── Preview fixo do avatar ──────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .padding(horizontal = 24.dp)
+                .clip(RoundedCornerShape(24.dp))
                 .background(FundoCard),
             contentAlignment = Alignment.Center
         ) {
             AvatarView(
                 config   = config,
                 estado   = EstadoAvatar.NEUTRO,
-                modifier = Modifier.fillMaxHeight(0.95f).aspectRatio(1f)
+                modifier = Modifier
+                    .fillMaxHeight(0.95f)
+                    .aspectRatio(1f)
             )
         }
 
-        HorizontalDivider(color = Color.White.copy(alpha = 0.12f))
+        Spacer(Modifier.height(12.dp))
 
-        // ── Tom de pele ───────────────────────────────────────────────
-        SecaoLabel("Tom de pele")
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TONS_DE_PELE.forEach { (tom, cor) ->
-                val selecionado = config.tonDePele == tom
+        // ── Abas de categoria ───────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AbaEditor.entries.forEach { aba ->
+                val label = when (aba) {
+                    AbaEditor.PELE   -> "Tom de pele"
+                    AbaEditor.CABELO -> "Cabelo"
+                    AbaEditor.CAMISA -> "Camisa"
+                }
+                val selecionada = aba == abaAtiva
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(cor)
-                        .then(
-                            if (selecionado)
-                                Modifier
-                                    .border(3.dp, Color.White, CircleShape)
-                                    .border(5.dp, Color(0xFF333333), CircleShape)
-                            else
-                                Modifier.border(2.dp, Color(0x44000000), CircleShape)
-                        )
-                        .clickable { config = config.copy(tonDePele = tom) }
-                )
-            }
-        }
-
-        HorizontalDivider(color = Color.White.copy(alpha = 0.12f))
-
-        // ── Estilo de cabelo ──────────────────────────────────────────
-        SecaoLabel("Estilo de cabelo")
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(ESTILOS_CABELO) { estilo ->
-                val selecionado = config.cabelo == estilo
-                FilterChip(
-                    selected = selecionado,
-                    onClick  = { config = config.copy(cabelo = estilo) },
-                    label    = {
-                        Text(
-                            text = estilo.replaceFirstChar { it.uppercase() },
-                            fontWeight = if (selecionado) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Pink,
-                        selectedLabelColor     = Color.White,
-                        containerColor         = AzulCinza.copy(alpha = 0.3f),
-                        labelColor             = Color.White.copy(alpha = 0.7f)
-                    )
-                )
-            }
-        }
-
-        // ── Cor do cabelo ─────────────────────────────────────────────
-        SecaoLabel("Cor do cabelo")
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            CORES_CABELO.forEach { (cor, corVisual) ->
-                val selecionado = config.corCabelo == cor
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(corVisual)
-                        .then(
-                            if (selecionado)
-                                Modifier
-                                    .border(3.dp, Color.White, CircleShape)
-                                    .border(5.dp, Color(0xFF333333), CircleShape)
-                            else
-                                Modifier.border(2.dp, Color(0x44000000), CircleShape)
-                        )
-                        .clickable { config = config.copy(corCabelo = cor) }
-                )
-            }
-        }
-
-        HorizontalDivider(color = Color.White.copy(alpha = 0.12f))
-
-        // ── Camisa ────────────────────────────────────────────────────
-        SecaoLabel("Camisa")
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            CAMISAS.forEach { (camisa, cor, nomeCamisa) ->
-                val selecionado = config.camisa == camisa
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(cor)
-                            .then(
-                                if (selecionado)
-                                    Modifier.border(3.dp, Pink, RoundedCornerShape(12.dp))
-                                else
-                                    Modifier.border(2.dp, Color(0x44FFFFFF), RoundedCornerShape(12.dp))
-                            )
-                            .clickable { config = config.copy(camisa = camisa) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        FooIcone(FooIcones.Avatar, cor = Color.White.copy(alpha = 0.9f), tamanho = 28.dp)
-                    }
-                    Spacer(Modifier.height(4.dp))
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (selecionada) Pink else AzulCinza.copy(alpha = 0.2f))
+                        .clickable { abaAtiva = aba }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        text       = nomeCamisa,
+                        text       = label,
                         fontSize   = 12.sp,
-                        color      = if (selecionado) Color.White else Color.White.copy(alpha = 0.6f),
-                        fontWeight = if (selecionado) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (selecionada) FontWeight.ExtraBold else FontWeight.Normal,
+                        color      = Color.White
                     )
                 }
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(12.dp))
 
-        BotaoCartoon(
-            texto    = "Salvar Avatar",
-            onClick  = { mostrarConfirmacaoSalvar = true },
-            tipo     = BotaoCartoonTipo.PRIMARIO,
-            modifier = Modifier.fillMaxWidth(),
-            altura   = 56.dp
-        )
+        // ── Painel de opções (rola, mas avatar fica fixo acima) ─────────
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            when (abaAtiva) {
 
-        Spacer(Modifier.height(16.dp))
+                // ── ABA: TOM DE PELE ────────────────────────────────────
+                AbaEditor.PELE -> {
+                    SecaoLabel("Escolha o tom de pele")
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        TONS_DE_PELE.forEach { (tom, cor) ->
+                            val selecionado = config.tonDePele == tom
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(CircleShape)
+                                    .background(cor)
+                                    .then(
+                                        if (selecionado)
+                                            Modifier
+                                                .border(3.dp, Color.White, CircleShape)
+                                                .border(5.dp, Color(0xFF333333), CircleShape)
+                                        else
+                                            Modifier.border(2.dp, Color(0x44000000), CircleShape)
+                                    )
+                                    .clickable { config = config.copy(tonDePele = tom) }
+                            )
+                        }
+                    }
+                }
+
+                // ── ABA: CABELO ─────────────────────────────────────────
+                AbaEditor.CABELO -> {
+                    SecaoLabel("Estilo")
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(ESTILOS_CABELO) { estilo ->
+                            val selecionado = config.cabelo == estilo
+                            FilterChip(
+                                selected = selecionado,
+                                onClick  = { config = config.copy(cabelo = estilo) },
+                                label    = {
+                                    Text(
+                                        text       = estilo.replaceFirstChar { it.uppercase() },
+                                        fontWeight = if (selecionado) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Pink,
+                                    selectedLabelColor     = Color.White,
+                                    containerColor         = AzulCinza.copy(alpha = 0.3f),
+                                    labelColor             = Color.White.copy(alpha = 0.7f)
+                                )
+                            )
+                        }
+                    }
+
+                    SecaoLabel("Cor do cabelo")
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        CORES_CABELO.forEach { (cor, corVisual) ->
+                            val selecionado = config.corCabelo == cor
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(CircleShape)
+                                    .background(corVisual)
+                                    .then(
+                                        if (selecionado)
+                                            Modifier
+                                                .border(3.dp, Color.White, CircleShape)
+                                                .border(5.dp, Color(0xFF333333), CircleShape)
+                                        else
+                                            Modifier.border(2.dp, Color(0x44000000), CircleShape)
+                                    )
+                                    .clickable { config = config.copy(corCabelo = cor) }
+                            )
+                        }
+                    }
+                }
+
+                // ── ABA: CAMISA ─────────────────────────────────────────
+                AbaEditor.CAMISA -> {
+                    SecaoLabel("Modelo")
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(MODELOS_CAMISA) { (modelo, nome) ->
+                            val selecionado = config.camisa == modelo
+                            FilterChip(
+                                selected = selecionado,
+                                onClick  = { config = config.copy(camisa = modelo) },
+                                label    = {
+                                    Text(
+                                        text       = nome,
+                                        fontWeight = if (selecionado) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Pink,
+                                    selectedLabelColor     = Color.White,
+                                    containerColor         = AzulCinza.copy(alpha = 0.3f),
+                                    labelColor             = Color.White.copy(alpha = 0.7f)
+                                )
+                            )
+                        }
+                    }
+
+                    if (config.camisa == "personalizada") {
+                        SecaoLabel("Cor")
+                        RodaDeCores(
+                            corSelecionada   = config.corCamisaColor(),
+                            onCorSelecionada = { nova -> config = config.copy(corCamisa = nova.toHexCor()) },
+                            modifier         = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+        }
+
+        // ── Botão Salvar (sempre visível no rodapé) ─────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            BotaoCartoon(
+                texto    = "Salvar Avatar",
+                onClick  = { mostrarConfirmacaoSalvar = true },
+                tipo     = BotaoCartoonTipo.PRIMARIO,
+                modifier = Modifier.fillMaxWidth(),
+                altura   = 52.dp
+            )
+        }
     }
 
     if (mostrarConfirmacaoSalvar) {
@@ -216,8 +288,8 @@ fun AvatarEditorScreen(
             containerColor   = FundoCard,
             title = {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalAlignment      = Alignment.CenterVertically,
+                    horizontalArrangement  = Arrangement.spacedBy(8.dp)
                 ) {
                     FooIcone(FooIcones.Avatar, cor = Rosa, tamanho = 22.dp)
                     Text("Salvar avatar?", color = Color.White, fontWeight = FontWeight.Bold)
@@ -251,8 +323,8 @@ fun AvatarEditorScreen(
 private fun SecaoLabel(texto: String) {
     Text(
         text       = texto,
-        style      = MaterialTheme.typography.titleMedium,
-        color      = Color.White,
+        style      = MaterialTheme.typography.titleSmall,
+        color      = Color.White.copy(alpha = 0.7f),
         fontWeight = FontWeight.Bold
     )
 }

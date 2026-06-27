@@ -15,7 +15,7 @@ class OpcoesViewModel @Inject constructor(
     private val soundPrefs: SoundPreferences
 ) : ViewModel() {
 
-    private val _altoContraste    = MutableStateFlow(false)
+    private val _altoContraste = MutableStateFlow(false)
     val altoContraste: StateFlow<Boolean> = _altoContraste.asStateFlow()
 
     private val _efeitosSonoros = MutableStateFlow(soundPrefs.getEfeitosSonoros())

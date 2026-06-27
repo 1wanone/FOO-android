@@ -14,7 +14,7 @@ class AvatarPreferences @Inject constructor(
         cabelo    = prefs.getString("cabelo", "curto") ?: "curto",
         corCabelo = prefs.getString("cor_cabelo", "preto") ?: "preto",
         camisa    = prefs.getString("camisa", "maniva") ?: "maniva",
-        corCamisa = prefs.getString("cor_camisa", "preto") ?: "preto"
+        corCamisa = prefs.getString("cor_camisa", "#1B4E2D") ?: "#1B4E2D"
     )
 
     fun save(config: AvatarConfig) {

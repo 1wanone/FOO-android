@@ -558,7 +558,7 @@ class FirestoreRepository @Inject constructor() {
                 cabelo    = doc.getString("avatar_cabelo")    ?: "curto",
                 corCabelo = doc.getString("avatar_corCabelo") ?: "preto",
                 camisa    = doc.getString("avatar_camisa")    ?: "maniva",
-                corCamisa = doc.getString("avatar_corCamisa") ?: "preto"
+                corCamisa = doc.getString("avatar_corCamisa") ?: "#1B4E2D"
             )
             Result.success(config)
         } else {

@@ -33,7 +33,6 @@ fun OpcoesScreen(
     navController: NavController,
     viewModel: OpcoesViewModel = hiltViewModel()
 ) {
-    val altoContraste   by viewModel.altoContraste.collectAsState()
     val efeitosSonoros  by viewModel.efeitosSonoros.collectAsState()
     val musicaFundo     by viewModel.musicaFundo.collectAsState()
     val audio = LocalAudioManager.current
@@ -53,18 +52,6 @@ fun OpcoesScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                SecaoLabel("ACESSIBILIDADE")
-                CardCartoon(modifier = Modifier.fillMaxWidth()) {
-                    OpcaoToggle(
-                        titulo     = "Alto contraste",
-                        descricao  = "Aumenta o contraste dos textos",
-                        checked    = altoContraste,
-                        onToggle   = { viewModel.toggleAltoContraste() },
-                        habilitado = false,
-                        labelExtra = "Em breve"
-                    )
-                }
-
                 SecaoLabel("SOM")
                 CardCartoon(modifier = Modifier.fillMaxWidth()) {
                     OpcaoToggle(
