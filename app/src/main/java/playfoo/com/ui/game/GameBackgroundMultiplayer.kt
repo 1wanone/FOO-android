@@ -24,69 +24,52 @@ fun GameBackgroundMultiplayer(
     Layout(
         modifier = modifier,
         content = {
-
-            // Fundo
+            // [0] Fundo
             Image(
                 painter = painterResource(R.drawable.fundo_jogo),
                 contentDescription = null,
                 contentScale = ContentScale.Crop
             )
 
-            // ===== JOGADOR LOCAL =====
-
-            // Cadeira
+            // [1] Cadeira Local
             Image(
                 painter = painterResource(R.drawable.cadeira),
                 contentDescription = null,
                 contentScale = ContentScale.FillBounds
             )
 
-            // Corpo sem mão
-            AvatarView(
-                config = avatarConfigLocal,
-                estado = estadoLocal,
-                mostrarMao = false
-            )
+            // [2] Avatar Local
+            AvatarView(config = avatarConfigLocal, estado = estadoLocal, mostrarMao = false)
 
-            // Mesa
-            Image(
-                painter = painterResource(R.drawable.mesa_pc_crop),
-                contentDescription = null,
-                contentScale = ContentScale.FillBounds
-            )
-
-            // Mão
-            AvatarHandOnly(
-                config = avatarConfigLocal
-            )
-
-            // ===== JOGADOR REMOTO =====
-
-            // Cadeira
+            // [3] Cadeira Remota
             Image(
                 painter = painterResource(R.drawable.cadeira),
                 contentDescription = null,
                 contentScale = ContentScale.FillBounds
             )
 
-            // Corpo sem mão
-            AvatarView(
-                config = avatarConfigRemoto,
-                estado = estadoRemoto,
-                mostrarMao = false
-            )
+            // [4] Avatar Remoto
+            AvatarView(config = avatarConfigRemoto, estado = estadoRemoto, mostrarMao = false)
 
-            // Mesa
+            // [5] Mesa Local — FillBounds sem distorção pois mesaH/mesaW = 1240/2500
             Image(
                 painter = painterResource(R.drawable.mesa_pc_crop),
                 contentDescription = null,
                 contentScale = ContentScale.FillBounds
             )
 
-            // Mão
-            AvatarHandOnly(
-                config = avatarConfigRemoto
+            // [6] Mesa Remota
+            Image(
+                painter = painterResource(R.drawable.mesa_pc_crop),
+                contentDescription = null,
+                contentScale = ContentScale.FillBounds
             )
+
+            // [7] Mão Local
+            AvatarHandOnly(config = avatarConfigLocal)
+
+            // [8] Mão Remota
+            AvatarHandOnly(config = avatarConfigRemoto)
         }
     ) { measurables, constraints ->
 
@@ -94,114 +77,43 @@ fun GameBackgroundMultiplayer(
         val H = constraints.maxHeight
         val half = W / 2
 
-        // ===== MESA =====
-
+        // Fórmulas idênticas ao GameBackground (single player),
+        // substituindo W por half em cada lado.
         val mesaW = half
-        val mesaH = (half * 1240f / 2500f).toInt()
+        val mesaH = (half * 1240f / 2500f).toInt() // ratio exato da imagem → sem distorção
         val mesaY = H - mesaH
 
-        // ===== AVATAR =====
-        // Mesmos cálculos do single player
-
-        val avW = (half * 0.70f).toInt()
-        val avH = (avW * 2400f / 2500f).toInt()
-
-        val avX = (half * 0.075f).toInt()
-        val avY = mesaY - (avH * 0.43f).toInt()
-
+        val avW      = (half * 0.85f).toInt()
+        val avH      = (avW  * 2400f / 2500f).toInt()
+        val avX      = (half * 0.03f).toInt()
         val cadeiraX = avX + (half * 0.03f).toInt()
+        val avY      = mesaY - (avH * 0.45f).toInt()
 
-        // ===== MEDIÇÕES =====
-
-        val fundo = measurables[0].measure(
-            Constraints.fixed(W, H)
-        )
-
-        // Local
-        val cadeiraLocal = measurables[1].measure(
-            Constraints.fixed(avW, avH)
-        )
-
-        val avatarLocal = measurables[2].measure(
-            Constraints.fixed(avW, avH)
-        )
-
-        val mesaLocal = measurables[3].measure(
-            Constraints.fixed(mesaW, mesaH)
-        )
-
-        val maoLocal = measurables[4].measure(
-            Constraints.fixed(avW, avH)
-        )
-
-        // Remoto
-        val cadeiraRemota = measurables[5].measure(
-            Constraints.fixed(avW, avH)
-        )
-
-        val avatarRemoto = measurables[6].measure(
-            Constraints.fixed(avW, avH)
-        )
-
-        val mesaRemota = measurables[7].measure(
-            Constraints.fixed(mesaW, mesaH)
-        )
-
-        val maoRemota = measurables[8].measure(
-            Constraints.fixed(avW, avH)
-        )
+        val fundo         = measurables[0].measure(Constraints.fixed(W, H))
+        val cadeiraLocal  = measurables[1].measure(Constraints.fixed(avW, avH))
+        val avatarLocal   = measurables[2].measure(Constraints.fixed(avW, avH))
+        val cadeiraRemota = measurables[3].measure(Constraints.fixed(avW, avH))
+        val avatarRemoto  = measurables[4].measure(Constraints.fixed(avW, avH))
+        val mesaLocal     = measurables[5].measure(Constraints.fixed(mesaW, mesaH))
+        val mesaRemota    = measurables[6].measure(Constraints.fixed(mesaW, mesaH))
+        val maoLocal      = measurables[7].measure(Constraints.fixed(avW, avH))
+        val maoRemota     = measurables[8].measure(Constraints.fixed(avW, avH))
 
         layout(W, H) {
-
+            // Fundo ocupa toda a tela
             fundo.place(0, 0)
 
-            // =====================
-            // JOGADOR LOCAL
-            // =====================
+            // Lado esquerdo - Jogador Local
+            cadeiraLocal.place(cadeiraX, avY)
+            avatarLocal.place(avX, avY)
+            mesaLocal.place(0, mesaY)
+            maoLocal.place(avX, avY)
 
-            cadeiraLocal.place(
-                cadeiraX,
-                avY
-            )
-
-            avatarLocal.place(
-                avX,
-                avY
-            )
-
-            mesaLocal.place(
-                0,
-                mesaY
-            )
-
-            maoLocal.place(
-                avX,
-                avY
-            )
-
-            // =====================
-            // JOGADOR REMOTO
-            // =====================
-
-            cadeiraRemota.place(
-                half + cadeiraX,
-                avY
-            )
-
-            avatarRemoto.place(
-                half + avX,
-                avY
-            )
-
-            mesaRemota.place(
-                half,
-                mesaY
-            )
-
-            maoRemota.place(
-                half + avX,
-                avY
-            )
+            // Lado direito - Jogador Remoto
+            cadeiraRemota.place(half + cadeiraX, avY)
+            avatarRemoto.place(half + avX, avY)
+            mesaRemota.place(half, mesaY)
+            maoRemota.place(half + avX, avY)
         }
     }
 }

@@ -539,14 +539,10 @@ private fun TelaJogar(
                     .align(Alignment.TopCenter),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (uiState.progresso.isNotBlank()) {
-                    ProgressoPalavra(progresso = uiState.progresso)
-                } else {
-                    CircularProgressIndicator(
-                        color = playfoo.com.ui.theme.Ciano,
-                        modifier = Modifier.size(20.dp)
-                    )
+                val displayProgresso = uiState.progresso.ifBlank {
+                    uiState.palavra.map { '_' }.joinToString(" ")
                 }
+                ProgressoPalavra(progresso = displayProgresso)
                 if (uiState.terminei) {
                     Spacer(Modifier.height(4.dp))
                     Text(
@@ -589,13 +585,12 @@ private fun CardJogadorMulti(
 
     androidx.compose.foundation.layout.Column(
         modifier = modifier
-            .height(56.dp)
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
             .background(playfoo.com.ui.theme.FundoCard)
             .border(2.dp, borderColor, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         androidx.compose.foundation.layout.Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -638,7 +633,7 @@ private fun CardJogadorMulti(
                     contentDescription = null,
                     tint = if (i < tentativas) playfoo.com.ui.theme.Rosa
                     else playfoo.com.ui.theme.RoxoMedio.copy(alpha = 0.5f),
-                    modifier = Modifier.size(10.dp)
+                    modifier = Modifier.size(14.dp)
                 )
             }
         }
