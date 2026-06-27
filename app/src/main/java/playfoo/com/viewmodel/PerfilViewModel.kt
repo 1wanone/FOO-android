@@ -170,6 +170,16 @@ class PerfilViewModel @Inject constructor(
         }
     }
 
+    fun atualizarNome(novoNome: String) {
+        if (novoNome.isBlank()) return
+        val userId = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            firebaseAuthRepository.atualizarNome(novoNome)
+            firestoreRepository.atualizarNomeUsuario(userId, novoNome)
+            _uiState.value = _uiState.value.copy(nomeUsuario = novoNome)
+        }
+    }
+
     fun logout() {
         firebaseAuthRepository.logout()
         _uiState.value = PerfilUiState(avatarConfig = avatarPrefs.load())

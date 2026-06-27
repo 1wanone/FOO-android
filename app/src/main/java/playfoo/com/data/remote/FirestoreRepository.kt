@@ -166,6 +166,13 @@ class FirestoreRepository @Inject constructor() {
         Result.failure(e)
     }
 
+    suspend fun atualizarNomeUsuario(userId: String, novoNome: String): Result<Unit> = try {
+        usuarios.document(userId).update("nome", novoNome).await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
     suspend fun buscarNomeUsuario(uid: String): String {
         return try {
             val doc = usuarios.document(uid).get().await()

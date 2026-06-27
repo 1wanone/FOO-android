@@ -10,6 +10,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import playfoo.com.R
+import playfoo.com.data.local.SoundPreferences
 
 val LocalAudioManager = compositionLocalOf<AudioManager?> { null }
 
@@ -37,19 +38,29 @@ class AudioManager(context: Context) {
             setVolume(1.0f, 1.0f)
         }
 
+    var musicaHabilitada: Boolean = true
+    var efeitosHabilitados: Boolean = true
+
     fun iniciarMusica() {
-        if (mediaPlayer?.isPlaying == false) mediaPlayer?.start()
+        if (musicaHabilitada && mediaPlayer?.isPlaying == false) mediaPlayer?.start()
     }
 
     fun pausarMusica() {
         if (mediaPlayer?.isPlaying == true) mediaPlayer?.pause()
     }
 
-    fun playClick()   = soundPool.play(idClick,   0.6f, 0.6f, 1, 0, 1f)
-    fun playCorrect() = soundPool.play(idCorrect, 1f,   1f,   1, 0, 1f)
-    fun playErro()    = soundPool.play(idErro,    1f,   1f,   1, 0, 1f)
-    fun playVictory() = soundPool.play(idVictory, 1f,   1f,   1, 0, 1f)
-    fun playDerrota() = soundPool.play(idDerrota, 1f,   1f,   1, 0, 1f)
+    fun atualizarMusica(enabled: Boolean) {
+        musicaHabilitada = enabled
+        if (enabled) iniciarMusica() else pausarMusica()
+    }
+
+    fun atualizarEfeitos(enabled: Boolean) { efeitosHabilitados = enabled }
+
+    fun playClick()   { if (efeitosHabilitados) soundPool.play(idClick,   0.6f, 0.6f, 1, 0, 1f) }
+    fun playCorrect() { if (efeitosHabilitados) soundPool.play(idCorrect, 1f,   1f,   1, 0, 1f) }
+    fun playErro()    { if (efeitosHabilitados) soundPool.play(idErro,    1f,   1f,   1, 0, 1f) }
+    fun playVictory() { if (efeitosHabilitados) soundPool.play(idVictory, 1f,   1f,   1, 0, 1f) }
+    fun playDerrota() { if (efeitosHabilitados) soundPool.play(idDerrota, 1f,   1f,   1, 0, 1f) }
 
     fun release() {
         mediaPlayer?.release()
@@ -61,7 +72,15 @@ class AudioManager(context: Context) {
 @Composable
 fun rememberAudioManager(): AudioManager {
     val context = LocalContext.current
-    val audio = remember { AudioManager(context) }
+    val audio = remember {
+        val prefs = SoundPreferences(
+            context.getSharedPreferences("foomobile_prefs", Context.MODE_PRIVATE)
+        )
+        AudioManager(context).apply {
+            musicaHabilitada   = prefs.getMusicaFundo()
+            efeitosHabilitados = prefs.getEfeitosSonoros()
+        }
+    }
     DisposableEffect(Unit) {
         audio.iniciarMusica()
         onDispose { audio.release() }

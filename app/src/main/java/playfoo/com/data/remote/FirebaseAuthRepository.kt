@@ -50,6 +50,17 @@ class FirebaseAuthRepository @Inject constructor() {
         Result.failure(e)
     }
 
+    suspend fun atualizarNome(novoNome: String): Result<Unit> = try {
+        auth.currentUser!!.updateProfile(
+            com.google.firebase.auth.UserProfileChangeRequest.Builder()
+                .setDisplayName(novoNome)
+                .build()
+        ).await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
     fun logout() = auth.signOut()
 
     private fun FirebaseUser.toAuthUser() = AuthUser(

@@ -34,6 +34,6 @@ data class Partida(
     fun terminou(): Boolean = venceu() || tentativasRestantes <= 0
     fun getProgresso(): String = palavra.mostraProgresso(letrasCorretas)
     fun getTentativasRestantes(): Int = tentativasRestantes
-    fun getLetrasErradas(): Set<Char> = letrasErradas
-    fun getLetrasCorretas(): Set<Char> = letrasCorretas
+    fun getLetrasErradas(): Set<Char> = letrasErradas.toSet()
+    fun getLetrasCorretas(): Set<Char> = letrasCorretas.toSet()
 }

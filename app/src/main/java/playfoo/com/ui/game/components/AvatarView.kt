@@ -61,20 +61,7 @@ fun AvatarView(
             )
         }
 
-        // CAMADA 2 — Camisa
-        val camisaRes = when (config.camisa) {
-            "divas" -> R.drawable.camisa_divas
-            else -> R.drawable.camisa_maniva
-        }
-
-        Image(
-            painter = painterResource(camisaRes),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Fit
-        )
-
-        // CAMADA 3 — Cabelo
+        // CAMADA 2 — Cabelo (atrás da camisa para estilos longos/lisos)
         val cabeloKey = "${config.cabelo}_${config.corCabelo}"
 
         val cabeloRes = when (cabeloKey) {
@@ -103,6 +90,19 @@ fun AvatarView(
 
         Image(
             painter = painterResource(cabeloRes),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Fit
+        )
+
+        // CAMADA 3 — Camisa (na frente do cabelo)
+        val camisaRes = when (config.camisa) {
+            "divas" -> R.drawable.camisa_divas
+            else -> R.drawable.camisa_maniva
+        }
+
+        Image(
+            painter = painterResource(camisaRes),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit

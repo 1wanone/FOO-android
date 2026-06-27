@@ -24,6 +24,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import playfoo.com.ui.components.*
+import playfoo.com.ui.game.LocalAudioManager
 import playfoo.com.ui.theme.*
 import playfoo.com.viewmodel.OpcoesViewModel
 
@@ -32,7 +33,10 @@ fun OpcoesScreen(
     navController: NavController,
     viewModel: OpcoesViewModel = hiltViewModel()
 ) {
-    val altoContraste by viewModel.altoContraste.collectAsState()
+    val altoContraste   by viewModel.altoContraste.collectAsState()
+    val efeitosSonoros  by viewModel.efeitosSonoros.collectAsState()
+    val musicaFundo     by viewModel.musicaFundo.collectAsState()
+    val audio = LocalAudioManager.current
     var mostrarConfirmacaoLogout by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -64,21 +68,17 @@ fun OpcoesScreen(
                 SecaoLabel("SOM")
                 CardCartoon(modifier = Modifier.fillMaxWidth()) {
                     OpcaoToggle(
-                        titulo     = "Efeitos sonoros",
-                        descricao  = "Sons ao acertar e errar letras",
-                        checked    = false,
-                        onToggle   = {},
-                        habilitado = false,
-                        labelExtra = "Em breve"
+                        titulo    = "Efeitos sonoros",
+                        descricao = "Sons ao acertar e errar letras",
+                        checked   = efeitosSonoros,
+                        onToggle  = { audio?.atualizarEfeitos(viewModel.toggleEfeitosSonoros()) }
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.White.copy(alpha = 0.1f))
                     OpcaoToggle(
-                        titulo     = "Música de fundo",
-                        descricao  = "Trilha sonora do jogo",
-                        checked    = false,
-                        onToggle   = {},
-                        habilitado = false,
-                        labelExtra = "Em breve"
+                        titulo    = "Música de fundo",
+                        descricao = "Trilha sonora do jogo",
+                        checked   = musicaFundo,
+                        onToggle  = { audio?.atualizarMusica(viewModel.toggleMusicaFundo()) }
                     )
                 }
 

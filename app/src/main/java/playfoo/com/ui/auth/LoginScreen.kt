@@ -308,10 +308,14 @@ private fun CardLogin(
 
         Spacer(Modifier.height(24.dp))
 
-        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Não tem conta? ", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium)
             TextButton(onClick = onIrRegistro, contentPadding = PaddingValues(0.dp)) {
-                Text("Cadastre-se", color = Rosa, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("Cadastre-se", color = Rosa, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
@@ -440,7 +444,11 @@ private fun CardRegistro(
 
         Spacer(Modifier.height(24.dp))
 
-        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Já tem conta? ", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium)
             TextButton(onClick = onVoltarLogin, contentPadding = PaddingValues(0.dp)) {
                 Text("Entrar", color = Rosa, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
@@ -540,7 +548,6 @@ private fun TelaEscolherTipo(
     ) {
         Spacer(Modifier.height(32.dp))
 
-        FooIcone(icone = FooIcones.Jogador, cor = Rosa, tamanho = 64.dp)
         Text(
             text = "Bem-vindo!",
             style = MaterialTheme.typography.headlineMedium,
