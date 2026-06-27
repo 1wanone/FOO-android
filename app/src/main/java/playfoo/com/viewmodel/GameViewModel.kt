@@ -53,7 +53,6 @@ class GameViewModel @Inject constructor(
 
     private var timerJob: Job? = null
     private var avatarJob: Job? = null
-    private var tempoInicioPartida = 0L
 
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
@@ -88,12 +87,11 @@ class GameViewModel @Inject constructor(
     }
 
     private fun novaPartida() {
-        val tema = TemaDataSource.getById(temaId) ?: TemaDataSource.temas.first()
+        val tema = TemaDataSource.getTemaById(temaId) ?: TemaDataSource.temas.first()
         val palavra = tema.palavras.random()
         val jogador = JogadorAluno(id = "1", nome = "Jogador")
         val partida = jogoDaForca.iniciarPartida(tema, palavra, jogador, dificuldade)
         partidaAtual = partida
-        tempoInicioPartida = System.currentTimeMillis()
 
         _uiState.value = GameUiState(
             progresso           = partida.getProgresso(),
@@ -172,7 +170,6 @@ class GameViewModel @Inject constructor(
             } catch (e: Exception) {
                 null
             }
-            android.util.Log.d("GAME", "Salvando partida - jogadorId: $userId, turmaId: $turmaId")
             firestoreRepository.salvarPartida(
                 jogadorId        = userId,
                 tema             = state.tema,

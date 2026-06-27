@@ -53,9 +53,6 @@ class TurmaViewModel @Inject constructor(
                     }
             }
         }
-        viewModelScope.launch {
-            firestoreRepository.debugUsuario("hvE48gBwcvTHEGXfRRehtxjQ0R43")
-        }
     }
 
     fun irPara(tela: TelaTurma) {

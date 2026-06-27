@@ -18,7 +18,7 @@ import playfoo.com.domain.corCamisaColor
 fun AvatarView(
     config: AvatarConfig,
     estado: EstadoAvatar = EstadoAvatar.NEUTRO,
-    mostrarMao: Boolean = true, // Flag para controlar a visibilidade da mão
+    mostrarMao: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -133,7 +133,6 @@ fun AvatarView(
     }
 }
 
-// NOVO COMPONENTE: Desenha apenas a mão para colocarmos por cima da mesa
 @Composable
 fun AvatarHandOnly(
     config: AvatarConfig,

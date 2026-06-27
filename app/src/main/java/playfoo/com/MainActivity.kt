@@ -60,7 +60,7 @@ fun ForcaNavHost() {
             when (event) {
                 Lifecycle.Event.ON_RESUME -> audio.iniciarMusica()
                 Lifecycle.Event.ON_PAUSE  -> audio.pausarMusica()
-                else -> {}
+                else                      -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(obs)

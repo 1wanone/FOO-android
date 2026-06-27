@@ -1,6 +1,5 @@
 package playfoo.com.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
@@ -69,7 +68,6 @@ class PerfilViewModel @Inject constructor(
             firestoreRepository.getUsuario(usuario.id)
                 .onSuccess { data ->
                     val tipo = data["tipo"]?.toString() ?: TipoUsuario.ALUNO
-                    Log.d("DEBUG_TIPO", "tipo lido do Firestore: $tipo")
                     _uiState.value = _uiState.value.copy(
                         tipoUsuario   = tipo,
                         usuarioLogado = usuario.copy(tipo = tipo)

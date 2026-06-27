@@ -127,8 +127,6 @@ object TemaDataSource {
 
     fun getTemaById(id: Int): Tema? = temas.find { it.id == id }
 
-    fun getById(id: Int): Tema? = getTemaById(id)
-
     fun getPalavraAleatoria(temaId: Int): Palavra? =
         getTemaById(temaId)?.palavras?.random()
 

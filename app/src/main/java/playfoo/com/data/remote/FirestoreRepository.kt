@@ -66,15 +66,12 @@ class FirestoreRepository @Inject constructor() {
 
     // Buscar partidas da turma
     suspend fun getPartidasTurma(turmaId: String): Result<List<Map<String, Any>>> = try {
-        android.util.Log.d("DASHBOARD", "Buscando partidas da turma: $turmaId")
         val snapshot = partidas
             .whereEqualTo("turmaId", turmaId)
             .get()
             .await()
-        android.util.Log.d("DASHBOARD", "Partidas encontradas: ${snapshot.size()}")
         Result.success(snapshot.documents.mapNotNull { it.data })
     } catch (e: Exception) {
-        android.util.Log.e("DASHBOARD", "Erro: ${e.message}")
         Result.failure(e)
     }
 
@@ -240,37 +237,12 @@ class FirestoreRepository @Inject constructor() {
             }
     }
 
-    suspend fun debugUsuario(uid: String) {
-        try {
-            val doc = usuarios.document(uid).get().await()
-            android.util.Log.d("FIRESTORE_DEBUG", "=== Campos do usuário $uid ===")
-            doc.data?.forEach { (key, value) ->
-                android.util.Log.d("FIRESTORE_DEBUG", "  $key = $value")
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("FIRESTORE_DEBUG", "Erro ao ler usuário: ${e.message}")
-        }
-    }
-
-    suspend fun debugTurma(turmaId: String) {
-        try {
-            val doc = turmas.document(turmaId).get().await()
-            android.util.Log.d("FIRESTORE_DEBUG", "=== Campos da turma $turmaId ===")
-            doc.data?.forEach { (key, value) ->
-                android.util.Log.d("FIRESTORE_DEBUG", "  $key = $value")
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("FIRESTORE_DEBUG", "Erro ao ler turma: ${e.message}")
-        }
-    }
-
     suspend fun getTurmasDoGestor(gestorId: String): Result<List<Map<String, Any>>> = try {
         val snapshot = turmas
             .whereEqualTo("gestorId", gestorId)
             .get()
             .await()
         Result.success(snapshot.documents.mapNotNull { doc ->
-            android.util.Log.d("TURMA", "membros: ${doc.data?.get("membros")}")
             doc.data?.plus("id" to doc.id)
         })
     } catch (e: Exception) {
@@ -278,17 +250,13 @@ class FirestoreRepository @Inject constructor() {
     }
 
     suspend fun getTurmaDoAluno(jogadorId: String): Result<Map<String, Any>?> = try {
-        android.util.Log.d("FIRESTORE", "Buscando turma do aluno: $jogadorId")
         val snapshot = turmas
             .whereArrayContains("membros", jogadorId)
             .get()
             .await()
         val turma = snapshot.documents.firstOrNull()
-        val result = turma?.data?.plus("id" to turma.id)
-        android.util.Log.d("FIRESTORE", "Turma encontrada: ${result?.get("nome")}, id: ${result?.get("id")}")
-        Result.success(result)
+        Result.success(turma?.data?.plus("id" to turma.id))
     } catch (e: Exception) {
-        android.util.Log.e("FIRESTORE", "Erro ao buscar turma do aluno: ${e.message}")
         Result.failure(e)
     }
 
