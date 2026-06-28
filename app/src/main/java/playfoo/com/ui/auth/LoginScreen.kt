@@ -135,6 +135,7 @@ fun LoginScreen(
                         authState       = authState,
                         onLogin         = { email, senha -> viewModel.login(email, senha) },
                         onLoginGoogle   = { viewModel.loginGoogle(context) },
+                        onConvidado     = { viewModel.entrarComoConvidado() },
                         onIrRegistro    = { viewModel.limparEstado(); telaAtual = TelaAuth.REGISTRO },
                         onIrRecuperacao = { viewModel.limparEstado(); telaAtual = TelaAuth.RECUPERAR_SENHA }
                     )
@@ -185,6 +186,7 @@ private fun CardLogin(
     authState: AuthUiState,
     onLogin: (String, String) -> Unit,
     onLoginGoogle: () -> Unit,
+    onConvidado: () -> Unit,
     onIrRegistro: () -> Unit,
     onIrRecuperacao: () -> Unit
 ) {
@@ -306,7 +308,21 @@ private fun CardLogin(
             }
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(16.dp))
+
+        TextButton(
+            onClick  = onConvidado,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text      = "Jogar como Convidado (sem internet)",
+                color     = Color.White.copy(alpha = 0.55f),
+                style     = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
 
         Row(
             horizontalArrangement = Arrangement.Center,

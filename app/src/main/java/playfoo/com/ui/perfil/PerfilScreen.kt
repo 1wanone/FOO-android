@@ -56,6 +56,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
 import playfoo.com.domain.AvatarConfig
 import playfoo.com.domain.TipoUsuario
 import playfoo.com.ui.components.BotaoCartoon
@@ -156,12 +157,32 @@ private fun ConteudoPerfil(
     onEditarNome: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val isConvidado = FirebaseAuth.getInstance().currentUser == null
     var mostrarDialogNome by remember { mutableStateOf(false) }
     var novoNome by remember { mutableStateOf("") }
     Column(
         modifier = modifier.fillMaxSize()
     ) {
         HeaderFoo("Meu Perfil", onVoltar = onVoltar)
+
+        // Banner convidado
+        if (isConvidado) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(AzulCinza.copy(alpha = 0.2f))
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FooIcone(FooIcones.Jogador, cor = Color.White.copy(alpha = 0.5f), tamanho = 16.dp)
+                Text(
+                    text = "Modo Convidado — crie uma conta para salvar seu progresso",
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 11.sp
+                )
+            }
+        }
 
         Column(
             modifier = Modifier
@@ -199,12 +220,12 @@ private fun ConteudoPerfil(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = uiState.nomeUsuario.ifBlank { "Jogador" },
+                        text = if (isConvidado) "Convidado" else uiState.nomeUsuario.ifBlank { "Jogador" },
                         style = MaterialTheme.typography.headlineSmall,
                         color = Color.White,
                         fontWeight = FontWeight.ExtraBold
                     )
-                    IconButton(
+                    if (!isConvidado) IconButton(
                         onClick = {
                             novoNome = uiState.nomeUsuario
                             mostrarDialogNome = true

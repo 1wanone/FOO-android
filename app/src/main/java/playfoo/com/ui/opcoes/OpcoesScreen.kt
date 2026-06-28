@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
 import playfoo.com.ui.components.*
 import playfoo.com.ui.game.LocalAudioManager
 import playfoo.com.ui.theme.*
@@ -36,6 +37,7 @@ fun OpcoesScreen(
     val efeitosSonoros  by viewModel.efeitosSonoros.collectAsState()
     val musicaFundo     by viewModel.musicaFundo.collectAsState()
     val audio = LocalAudioManager.current
+    val isConvidado = remember { FirebaseAuth.getInstance().currentUser == null }
     var mostrarConfirmacaoLogout by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -71,13 +73,38 @@ fun OpcoesScreen(
 
                 SecaoLabel("CONTA")
                 CardCartoon(modifier = Modifier.fillMaxWidth()) {
-                    BotaoCartoon(
-                        texto    = "SAIR DA CONTA",
-                        icone    = FooIcones.Sair,
-                        onClick  = { mostrarConfirmacaoLogout = true },
-                        tipo     = BotaoCartoonTipo.PERIGO,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    if (isConvidado) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Modo Convidado — sem conta ativa",
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 12.sp
+                            )
+                            BotaoCartoon(
+                                texto    = "CRIAR CONTA / ENTRAR",
+                                icone    = FooIcones.Jogador,
+                                onClick  = {
+                                    navController.navigate("login") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                },
+                                tipo     = BotaoCartoonTipo.PRIMARIO,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    } else {
+                        BotaoCartoon(
+                            texto    = "SAIR DA CONTA",
+                            icone    = FooIcones.Sair,
+                            onClick  = { mostrarConfirmacaoLogout = true },
+                            tipo     = BotaoCartoonTipo.PERIGO,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }

@@ -141,6 +141,17 @@ class AuthViewModel @Inject constructor(
         _state.value = AuthUiState.Idle
     }
 
+    fun entrarComoConvidado() {
+        val convidado = AuthUser(
+            id       = "convidado",
+            nome     = "Convidado",
+            email    = "",
+            provedor = AuthProvedor.EMAIL,
+            tipo     = TipoUsuario.CONVIDADO
+        )
+        _state.value = AuthUiState.Sucesso(convidado)
+    }
+
     fun limparEstado() { _state.value = AuthUiState.Idle }
 
     fun finalizarCadastroGoogle(tipo: String, codigoProfessor: String) {

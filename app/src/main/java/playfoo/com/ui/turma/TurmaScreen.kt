@@ -35,6 +35,7 @@ import playfoo.com.ui.theme.*
 import playfoo.com.domain.RankingJogador
 import playfoo.com.viewmodel.TelaTurma
 import playfoo.com.viewmodel.TurmaUiState
+import com.google.firebase.auth.FirebaseAuth
 import playfoo.com.viewmodel.TurmaViewModel
 
 @Composable
@@ -44,12 +45,53 @@ fun TurmaScreen(
     viewModel: TurmaViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isConvidado = remember { FirebaseAuth.getInstance().currentUser == null }
 
     BackHandler(enabled = uiState.telaTurma != TelaTurma.INICIAL) {
         viewModel.irPara(TelaTurma.INICIAL)
     }
 
     FundoTela(tipo = TipoFundo.TURMA) {
+        if (isConvidado) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                HeaderFoo(titulo = "Turmas", onVoltar = onVoltar)
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CardCartoon(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            FooIcone(FooIcones.Turmas, cor = AzulCinza, tamanho = 52.dp)
+                            Text(
+                                text = "Recurso exclusivo para usuários cadastrados",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                fontSize = 16.sp
+                            )
+                            Text(
+                                text = "Crie uma conta para entrar em turmas, salvar seu progresso e ver suas estatísticas.",
+                                color = Color.White.copy(alpha = 0.65f),
+                                textAlign = TextAlign.Center,
+                                style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            BotaoCartoon(
+                                texto   = "Voltar",
+                                onClick = onVoltar,
+                                tipo    = BotaoCartoonTipo.NEUTRO,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+            }
+            return@FundoTela
+        }
         AnimatedContent(
             targetState = uiState.telaTurma,
             transitionSpec = {

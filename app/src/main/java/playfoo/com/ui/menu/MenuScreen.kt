@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -53,9 +54,12 @@ fun MenuScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val auth = remember { FirebaseAuth.getInstance() }
-    val nomeUsuario = auth.currentUser?.displayName
-        ?: auth.currentUser?.email?.substringBefore('@')
-        ?: "Jogador"
+    // detecta convidado pela ausência de sessão Firebase, não pelo argumento de rota
+    val isConvidado = auth.currentUser == null
+    val nomeUsuario = if (isConvidado) "Convidado"
+        else auth.currentUser?.displayName
+            ?: auth.currentUser?.email?.substringBefore('@')
+            ?: "Jogador"
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -121,6 +125,28 @@ fun MenuScreen(
 
                 Spacer(Modifier.height(6.dp))
 
+                // Banner de convidado
+                if (isConvidado) {
+                    Spacer(Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(AzulCinza.copy(alpha = 0.25f))
+                            .border(1.dp, AzulCinza.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text      = "Modo Convidado — crie uma conta para salvar seu progresso",
+                            color     = Color.White.copy(alpha = 0.75f),
+                            fontSize  = 11.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                }
+
                 // Badge de papel
                 Box(
                     modifier = Modifier
@@ -169,19 +195,19 @@ fun MenuScreen(
                         .height(56.dp)
                         .shadow(4.dp, RoundedCornerShape(16.dp))
                         .clip(RoundedCornerShape(16.dp))
-                        .border(2.dp, Rosa, RoundedCornerShape(16.dp))
-                        .background(RoxoMedio)
-                        .clickable { navController.navigate("multiplayer") },
+                        .border(2.dp, if (isConvidado) Color.White.copy(alpha = 0.15f) else Rosa, RoundedCornerShape(16.dp))
+                        .background(if (isConvidado) RoxoMedio.copy(alpha = 0.5f) else RoxoMedio)
+                        .then(if (!isConvidado) Modifier.clickable { navController.navigate("multiplayer") } else Modifier),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        FooIcone(FooIcones.Multi, cor = Rosa, tamanho = 20.dp)
+                        FooIcone(FooIcones.Multi, cor = if (isConvidado) Color.White.copy(alpha = 0.25f) else Rosa, tamanho = 20.dp)
                         Text(
-                            text          = "2 JOGADORES",
-                            color         = Rosa,
+                            text          = if (isConvidado) "2 JOGADORES  •  requer conta" else "2 JOGADORES",
+                            color         = if (isConvidado) Color.White.copy(alpha = 0.25f) else Rosa,
                             fontWeight    = FontWeight.ExtraBold,
                             fontSize      = 16.sp,
                             letterSpacing = 1.sp
