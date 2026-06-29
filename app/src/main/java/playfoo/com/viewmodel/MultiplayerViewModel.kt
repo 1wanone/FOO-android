@@ -49,6 +49,7 @@ data class MultiplayerUiState(
     val timerAtivo: Boolean = false,
     // Resultado
     val euVenci: Boolean = false,
+    val empate: Boolean = false,
     val palavraFinal: String = "",
     // Revanche
     val aceiteRevanche1: Boolean = false,
@@ -289,8 +290,8 @@ class MultiplayerViewModel @Inject constructor(
                     if (meuTurno && !terminei) iniciarTimer() else cancelarTimer()
                 }
 
-                // Detectar mudanças do oponente para animar avatar remoto
-                if (telaAtual == TelaMultiplayer.JOGAR) {
+                // Detectar mudanças do oponente para animar avatar remoto (só quando não é meu turno)
+                if (telaAtual == TelaMultiplayer.JOGAR && !meuTurno) {
                     when {
                         tentativasOponente < anteriorTentativasOponente -> {
                             _uiState.value = _uiState.value.copy(estadoAvatarRemoto = "ERROU")
@@ -317,13 +318,15 @@ class MultiplayerViewModel @Inject constructor(
                 if (status == "finalizada" && telaAtual == TelaMultiplayer.JOGAR) {
                     cancelarTimer()
                     val vencedorId = dados["vencedor"]?.toString() ?: ""
-                    val euVenci = vencedorId == auth.currentUser?.uid
+                    val empate = vencedorId == "empate"
+                    val euVenci = !empate && vencedorId == auth.currentUser?.uid
                     _uiState.value = _uiState.value.copy(
                         tela               = TelaMultiplayer.RESULTADO,
                         euVenci            = euVenci,
+                        empate             = empate,
                         palavraFinal       = palavraFirestore,
-                        estadoAvatarLocal  = if (euVenci) "VITORIA" else "DERROTA",
-                        estadoAvatarRemoto = if (euVenci) "DERROTA" else "VITORIA"
+                        estadoAvatarLocal  = if (empate) "DERROTA" else if (euVenci) "VITORIA" else "DERROTA",
+                        estadoAvatarRemoto = if (empate) "DERROTA" else if (euVenci) "DERROTA" else "VITORIA"
                     )
                 }
 
@@ -396,8 +399,17 @@ class MultiplayerViewModel @Inject constructor(
                 }
                 semTentativas -> {
                     cancelarTimer()
-                    val proximo = if (state.turnoAtual == 1) 2 else 1
-                    firestoreRepository.passarTurno(state.salaId, proximo)
+                    val oponenteTambemTerminou = state.tentativasOponente <= 0
+                    if (oponenteTambemTerminou) {
+                        _uiState.value = _uiState.value.copy(
+                            estadoAvatarLocal  = "DERROTA",
+                            estadoAvatarRemoto = "DERROTA"
+                        )
+                        firestoreRepository.finalizarSala(state.salaId, "empate")
+                    } else {
+                        val proximo = if (state.turnoAtual == 1) 2 else 1
+                        firestoreRepository.passarTurno(state.salaId, proximo)
+                    }
                 }
                 !acertou -> {
                     cancelarTimer()

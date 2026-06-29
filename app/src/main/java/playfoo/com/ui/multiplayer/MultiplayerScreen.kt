@@ -62,6 +62,8 @@ import playfoo.com.domain.Dificuldade
 import playfoo.com.ui.components.BotaoCartoon
 import playfoo.com.ui.components.BotaoCartoonTipo
 import playfoo.com.ui.components.CardCartoon
+import playfoo.com.ui.components.FooIcone
+import playfoo.com.ui.components.FooIcones
 import playfoo.com.ui.components.FundoTela
 import playfoo.com.ui.components.TipoFundo
 import playfoo.com.ui.game.AudioManager
@@ -130,6 +132,7 @@ fun MultiplayerScreen(
                 )
                 TelaMultiplayer.RESULTADO -> TelaResultado(
                     euVenci          = uiState.euVenci,
+                    empate           = uiState.empate,
                     palavraFinal     = uiState.palavraFinal,
                     tema             = uiState.tema,
                     onJogarMesmoTema = { viewModel.jogarNovamenteMesmoTema() },
@@ -660,12 +663,29 @@ private fun CardJogadorMulti(
 @Composable
 private fun TelaResultado(
     euVenci: Boolean,
+    empate: Boolean,
     palavraFinal: String,
     tema: String,
     onJogarMesmoTema: () -> Unit,
     onEscolherTema: () -> Unit,
     onVoltar: () -> Unit
 ) {
+    val corResultado = when {
+        empate -> Color(0xFF90A4AE)
+        euVenci -> Color(0xFFFFD700)
+        else -> Color(0xFFE53935)
+    }
+    val iconeResultado = when {
+        empate -> FooIcones.Turmas
+        euVenci -> FooIcones.Trofeu
+        else -> FooIcones.Turmas
+    }
+    val textoResultado = when {
+        empate -> "Empate!"
+        euVenci -> "Você venceu!"
+        else -> "Você perdeu!"
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -674,15 +694,15 @@ private fun TelaResultado(
         verticalArrangement = Arrangement.Center
     ) {
         FooIcone(
-            icone   = if (euVenci) FooIcones.Trofeu else FooIcones.Turmas,
-            cor     = if (euVenci) Color(0xFFFFD700) else Color(0xFFE53935),
+            icone   = iconeResultado,
+            cor     = corResultado,
             tamanho = 72.dp
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = if (euVenci) "Você venceu!" else "Você perdeu!",
+            text = textoResultado,
             style = MaterialTheme.typography.headlineLarge,
-            color = if (euVenci) Color(0xFFFFD700) else Color(0xFFE53935),
+            color = corResultado,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
