@@ -9,7 +9,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,7 +33,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
@@ -675,7 +673,11 @@ private fun TelaResultado(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(if (euVenci) "🏆" else "😢", fontSize = 80.sp)
+        FooIcone(
+            icone   = if (euVenci) FooIcones.Trofeu else FooIcones.Turmas,
+            cor     = if (euVenci) Color(0xFFFFD700) else Color(0xFFE53935),
+            tamanho = 72.dp
+        )
         Spacer(Modifier.height(8.dp))
         Text(
             text = if (euVenci) "Você venceu!" else "Você perdeu!",
@@ -710,27 +712,23 @@ private fun TelaResultado(
                     fontSize = 16.sp
                 )
                 BotaoCartoon(
-                    texto    = "🔄  Mesmo tema — $tema",
+                    texto    = "Mesmo tema",
                     onClick  = onJogarMesmoTema,
                     tipo     = BotaoCartoonTipo.PRIMARIO,
                     modifier = Modifier.fillMaxWidth()
                 )
                 BotaoCartoon(
-                    texto    = "🎲  Escolher outro tema",
+                    texto    = "Escolher outro tema",
                     onClick  = onEscolherTema,
                     tipo     = BotaoCartoonTipo.SECUNDARIO,
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedButton(
+                BotaoCartoon(
+                    texto    = "Sair do multiplayer",
                     onClick  = onVoltar,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors   = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.White.copy(alpha = 0.7f)
-                    ),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
-                ) {
-                    Text("← Sair do multiplayer")
-                }
+                    tipo     = BotaoCartoonTipo.NEUTRO,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
